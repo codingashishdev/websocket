@@ -11,9 +11,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@types/ws": "^8.18.1",
-    "socket.io": "^4.8.1",
-    "websocket": "^1.0.35",
+    "express": "^5.1.0",
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.2"
   }
 }
