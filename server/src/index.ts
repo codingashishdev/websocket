@@ -1,4 +1,6 @@
+import { timeStamp } from "console";
 import express from "express";
+import { text } from "stream/consumers";
 import { WebSocketServer } from "ws";
 
 // step 1: setup express server
@@ -28,7 +30,31 @@ wss.on("connection", (ws) => {
             // string to json object using json.parse(string)
             const messageObject = JSON.parse(message.toString());
 
-            console.log(messageObject);
+            if (messageObject.type === "login") {
+                ws.username = messageObject.username;
+
+                // create and boardcast an announcement message
+                const announcementMessage = {
+                    text: `${ws.username} has joined the chat`,
+                };
+
+                wss.clients.forEach((client) => {
+                    if (client.readyState === ws.OPEN) {
+                        client.send(JSON.stringify(announcementMessage));
+                    }
+                });
+            } else {
+                const chatMessage = {
+                    username: ws.username,
+                    timestamp: new Date().toLocaleTimeString() 
+                };
+
+                wss.clients.forEach(client => {
+                    if(client.readyState === ws.OPEN){
+                        client.send(JSON.stringify(chatMessage))
+                    }
+                })
+            }
 
             //we can add additional information like timestamp before sending it back to the client
             messageObject.timestamp = new Date().toLocaleTimeString();

@@ -33,7 +33,7 @@
         <ul id="messages"></ul>
 
         <form id="chat-form">
-            <!-- <label for="chat-input">How can I help you?</label> -->
+            <label for="chat-input">How can I help you?</label>
             <input
                 id="message-box"
                 placeholder="Typing a message..."
@@ -49,20 +49,32 @@
         const socket = new WebSocket("ws://localhost:8080");
         // first thing we needs to do is to know if we are connected or not
         // log a message when the connection is opened
+        let username = ""
         socket.onopen = (event) => {
             console.log("Successfully connected to the websocket server");
+            
+            // ask for the username
+            username = prompt('Enter your name')
+
+            // Create and send the login message
+            const loginMessage = {
+                type: 'login',
+                username: username
+            }
+
+            socket.send(JSON.stringify(loginMessage))
         };
 
         //listen for messages from server
         socket.onmessage = (event) => {
-            const messageList = document.getElementById('messages');
-            const newMessage = document.createElement('li')
+            const messageList = document.getElementById("messages");
+            const newMessage = document.createElement("li");
 
             const messageObject = JSON.parse(event.data);
 
             // actual message content is in event.data
-            newMessage.textContent = `${messageObject.userId}: ${messageObject.message} on ${messageObject.timestamp} `
-            messageList.appendChild(newMessage); 
+            newMessage.textContent = `${messageObject.userId}: ${messageObject.message} on ${messageObject.timestamp} `;
+            messageList.appendChild(newMessage);
         };
 
         const chatForm = document.getElementById("chat-form");
@@ -74,9 +86,10 @@
 
             // it is an actual object you want to send
             const messageObject = {
-                "userId": "User " +  Math.floor(Math.random() * 100) + 1,
-                "message": messageBox.value
-            }
+                type: 'chat',
+                username: username,
+                message: messageBox.value,
+            };
 
             //JSON.stringify() is a process of packing the actual object into a box so that it can be mained
             socket.send(JSON.stringify(messageObject));
