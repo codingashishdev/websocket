@@ -49,26 +49,6 @@ wss.on("connection", (ws) => {
       // preventing from a potential crash
       console.log("Error Parsing JSON: ", error);
     }
-    // raw message to string
-    // string to json object using json.parse(string)
-    const messageObject = JSON.parse(message.toString());
-
-    console.log(messageObject);
-
-    //we can add additional information like timestamp before sending it back to the client
-    messageObject.timestamp = new Date().toLocaleTimeString();
-
-    //stringify the json object into json string before boardcasting
-    const broadcastMessage = JSON.stringify(messageObject);
-
-    //sending Broadcast message to all the connected clients
-    wss.clients.forEach((client) => {
-      //we check if the client connection is still open before sending message
-      if (client.readyState === ws.OPEN) {
-        //converting from raw data(buffer) to string type
-        client.send(broadcastMessage);
-      }
-    });
   });
 
   // handling client disconnecting
