@@ -58,9 +58,11 @@
             const messageList = document.getElementById('messages');
             const newMessage = document.createElement('li')
 
+            const messageObject = JSON.parse(event.data);
+
             // actual message content is in event.data
-            newMessage.textContent = event.data;
-            messageList.appendChild(newMessage);
+            newMessage.textContent = `${messageObject.userId}: ${messageObject.message} on ${messageObject.timestamp} `
+            messageList.appendChild(newMessage); 
         };
 
         const chatForm = document.getElementById("chat-form");
@@ -70,10 +72,14 @@
             // prevent the form from resubmitting
             e.preventDefault();
 
-            // get the message from the input box
-            const message = messageBox.value;
+            // it is an actual object you want to send
+            const messageObject = {
+                "userId": "User " +  Math.floor(Math.random() * 100) + 1,
+                "message": messageBox.value
+            }
 
-            socket.send(message);
+            //JSON.stringify() is a process of packing the actual object into a box so that it can be mained
+            socket.send(JSON.stringify(messageObject));
 
             messageBox.value = "";
         });
