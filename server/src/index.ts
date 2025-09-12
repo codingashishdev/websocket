@@ -2,6 +2,9 @@ import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import rateLimit from "express-rate-limit";
 
+const app = express();
+const port = 8080;
+
 interface ChatWebSocket extends WebSocket {
     username?: string;
 }
@@ -15,9 +18,6 @@ function sanitize(str: string): string {
         .replace(/'/g, "&#39");
 }
 
-const app = express();
-const port = 8080;
-
 const limiter = rateLimit({
     max: 200,
     windowMs: 60 * 60 * 1000,
@@ -30,7 +30,29 @@ const server = app.listen(port, () => {
     console.log(`Server is running on the localhost port: ${port} `);
 });
 
-const wss = new WebSocketServer({ server });
+const allowedOrigins = [
+    'http://127.0.0.1:5500',
+    'http://localhost:8080',
+    'http://localhost:5500',
+    'https://our-domain-app.com'
+]
+
+const wss = new WebSocketServer({ server, 
+    verifyClient: (info, done) => {
+        const origin = info.origin
+
+        // check if the origin is in our allowedOrigns list
+        if(allowedOrigins.includes(origin)){
+            //approve if true
+            done(true)
+        }
+        else{
+            console.log(`Connection to origin: ${origin} rejected`)
+            //reject if false
+            done(false)
+        }
+    }
+});
 
 wss.on("connection", (ws: ChatWebSocket) => {
     console.log("New client has been connected!!");
