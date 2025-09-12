@@ -31,29 +31,54 @@ const server = app.listen(port, () => {
 });
 
 const allowedOrigins = [
-    'http://127.0.0.1:5500',
-    'http://localhost:8080',
-    'http://localhost:5500',
-    'https://our-domain-app.com'
-]
+    "http://127.0.0.1:5500",
+    "http://localhost:8080",
+    "http://localhost:5500",
+    "https://our-domain-app.com",
+];
 
-const wss = new WebSocketServer({ server, 
+function getConnectedUsers(): string[] {
+    const users: string[] = [];
+    wss.clients.forEach((client: ChatWebSocket) => {
+        if (client.readyState === WebSocket.OPEN && client.username) {
+            users.push(client.username);
+        }
+    });
+    return users;
+}
+
+//helper function to broadcast list of users to all the connected users(clients)
+function broadcastUserList() {
+    const connectedUsers = getConnectedUsers();
+    const userListMessage = {
+        type: "userList",
+        users: connectedUsers,
+    };
+
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(userListMessage));
+        }
+    });
+}
+
+const wss = new WebSocketServer({
+    server,
     verifyClient: (info, done) => {
-        const origin = info.origin
+        const origin = info.origin;
 
         // check if the origin is in our allowedOrigns list
-        if(allowedOrigins.includes(origin)){
+        if (allowedOrigins.includes(origin)) {
             //approve if true
-            done(true)
-        }
-        else{
-            console.log(`Connection to origin: ${origin} rejected`)
+            done(true);
+        } else {
+            console.log(`Connection to origin: ${origin} rejected`);
             //reject if false
-            done(false)
+            done(false);
         }
     },
     //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
-    maxPayload: 1024
+    maxPayload: 1024,
 });
 
 wss.on("connection", (ws: ChatWebSocket) => {
@@ -85,6 +110,8 @@ wss.on("connection", (ws: ChatWebSocket) => {
                         client.send(JSON.stringify(announcement));
                     }
                 });
+
+                broadcastUserList();
             } else if (messageObject.type === "chat") {
                 if (
                     !messageObject.message ||
@@ -112,5 +139,9 @@ wss.on("connection", (ws: ChatWebSocket) => {
     // handling client disconnecting
     ws.on("close", () => {
         console.log("Client has disconneted");
+
+        setTimeout(() => {
+            broadcastUserList();
+        }, 100);
     });
 });
