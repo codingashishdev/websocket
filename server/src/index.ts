@@ -51,7 +51,8 @@ const wss = new WebSocketServer({ server,
             //reject if false
             done(false)
         }
-    }
+    },
+    maxPayload: 1024
 });
 
 wss.on("connection", (ws: ChatWebSocket) => {
