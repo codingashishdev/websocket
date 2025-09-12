@@ -38,13 +38,21 @@
                 }
             }
 
-            html, body {
+            html,
+            body {
                 height: 100%;
             }
 
             body {
-                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-                background: radial-gradient(1200px 800px at 10% 10%, #1f2937 0%, transparent 60%) var(--bg);
+                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
+                    Roboto, "Helvetica Neue", Arial, "Noto Sans",
+                    "Apple Color Emoji", "Segoe UI Emoji";
+                background: radial-gradient(
+                        1200px 800px at 10% 10%,
+                        #1f2937 0%,
+                        transparent 60%
+                    )
+                    var(--bg);
                 color: var(--text);
                 margin: 0;
                 display: flex;
@@ -96,11 +104,16 @@
                 height: 10px;
                 border-radius: 50%;
                 background: var(--muted);
-                box-shadow: 0 0 0 2px color-mix(in srgb, var(--muted), transparent 70%);
+                box-shadow: 0 0 0 2px
+                    color-mix(in srgb, var(--muted), transparent 70%);
             }
 
-            .dot.connected { background: var(--success); }
-            .dot.disconnected { background: var(--danger); }
+            .dot.connected {
+                background: var(--success);
+            }
+            .dot.disconnected {
+                background: var(--danger);
+            }
 
             #inner-layout {
                 display: grid;
@@ -170,7 +183,8 @@
                 border-radius: 10px;
                 font-size: 15px;
                 outline: none;
-                transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+                transition: border-color 0.15s, box-shadow 0.15s,
+                    background 0.15s;
             }
 
             #chat-form input::placeholder {
@@ -186,19 +200,29 @@
             #chat-form button {
                 height: 44px;
                 padding: 0 16px;
-                background: linear-gradient(180deg, var(--primary), var(--primary-600));
+                background: linear-gradient(
+                    180deg,
+                    var(--primary),
+                    var(--primary-600)
+                );
                 color: white;
                 border: none;
                 border-radius: 10px;
                 cursor: pointer;
                 font-weight: 700;
                 letter-spacing: 0.2px;
-                transition: transform 0.05s ease, box-shadow 0.15s ease, filter 0.15s ease;
-                box-shadow: 0 6px 16px color-mix(in srgb, var(--primary), transparent 70%);
+                transition: transform 0.05s ease, box-shadow 0.15s ease,
+                    filter 0.15s ease;
+                box-shadow: 0 6px 16px
+                    color-mix(in srgb, var(--primary), transparent 70%);
             }
 
-            #chat-form button:hover { filter: brightness(1.05); }
-            #chat-form button:active { transform: translateY(1px); }
+            #chat-form button:hover {
+                filter: brightness(1.05);
+            }
+            #chat-form button:active {
+                transform: translateY(1px);
+            }
 
             #messages-container {
                 grid-area: messages;
@@ -223,10 +247,13 @@
                 padding: 12px;
                 border: 1px solid var(--border);
                 border-radius: 12px;
-                background:
-                    linear-gradient(180deg, color-mix(in srgb, var(--bubble), transparent 20%), transparent 10%),
+                background: linear-gradient(
+                        180deg,
+                        color-mix(in srgb, var(--bubble), transparent 20%),
+                        transparent 10%
+                    ),
                     var(--card);
-                box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
                 scroll-behavior: smooth;
             }
 
@@ -237,7 +264,7 @@
                 border-radius: 12px;
                 margin: 8px 0;
                 line-height: 1.3;
-                box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+                box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
             }
 
             #messages li .meta {
@@ -249,8 +276,12 @@
             }
 
             /* Scrollbar (WebKit) */
-            #messages::-webkit-scrollbar { width: 10px; }
-            #messages::-webkit-scrollbar-track { background: transparent; }
+            #messages::-webkit-scrollbar {
+                width: 10px;
+            }
+            #messages::-webkit-scrollbar-track {
+                background: transparent;
+            }
             #messages::-webkit-scrollbar-thumb {
                 background: color-mix(in srgb, var(--border), transparent 10%);
                 border-radius: 999px;
@@ -264,7 +295,6 @@
     </head>
     <body>
         <div class="container">
-            
             <div id="layout">
                 <div class="header">
                     <h1>Real Time Chat Application</h1>
@@ -273,13 +303,13 @@
                         <span id="status-text">Connecting…</span>
                     </div>
                 </div>
-    
+
                 <div id="inner-layout">
                     <div id="username">
                         <h2>Current user</h2>
                         <p id="currentUser">Not set</p>
                     </div>
-    
+
                     <form id="chat-form">
                         <label for="message-box">Type your message</label>
                         <input
@@ -288,10 +318,17 @@
                             type="text"
                             required
                             autocomplete="off"
+                            maxlength="250"
                         />
-                        <button id="send" type="submit" aria-label="Send message">Send</button>
+                        <button
+                            id="send"
+                            type="submit"
+                            aria-label="Send message"
+                        >
+                            Send
+                        </button>
                     </form>
-    
+
                     <div id="messages-container">
                         <span>Messages</span>
                         <ul id="messages"></ul>
@@ -299,7 +336,6 @@
                 </div>
             </div>
         </div>
-
 
         <script>
             const socket = new WebSocket("ws://localhost:8080");
@@ -312,7 +348,9 @@
             const setStatus = (connected) => {
                 statusDot.classList.toggle("connected", connected);
                 statusDot.classList.toggle("disconnected", !connected);
-                statusText.textContent = connected ? "Connected" : "Disconnected";
+                statusText.textContent = connected
+                    ? "Connected"
+                    : "Disconnected";
             };
 
             socket.onopen = () => {
