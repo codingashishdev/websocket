@@ -1,7 +1,11 @@
 import { timeStamp } from "console";
 import express from "express";
 import { text } from "stream/consumers";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
+
+interface ChatWebSocket extends WebSocket {
+    username?: string;
+}
 
 // step 1: setup express server
 const app = express();
@@ -17,43 +21,40 @@ const wss = new WebSocketServer({ server });
 // step 3: listen for any incoming client requests
 // wss.on(connection, ()=>{}) -> so it is an entry point for any user in order to establish connection
 // here ws an object that represents individual, unique connection for a single client that has been connected to your server
-wss.on("connection", (ws) => {
+wss.on("connection", (ws: ChatWebSocket) => {
     console.log("New client has been connected!!");
-
-    //listening for messages from specific client
+    // listening for messages from specific client
     ws.on("message", (message) => {
         console.log(`Received message: ${message}`);
 
-        // what happens if message is in the plan text format
         try {
-            // raw message to string
-            // string to json object using json.parse(string)
             const messageObject = JSON.parse(message.toString());
 
             if (messageObject.type === "login") {
                 ws.username = messageObject.username;
 
                 // create and boardcast an announcement message
-                const announcementMessage = {
-                    text: `${ws.username} has joined the chat`,
+                const announcement = {
+                    text: `${ws.username || "Someone"} has joined the chat`,
                 };
 
                 wss.clients.forEach((client) => {
                     if (client.readyState === ws.OPEN) {
-                        client.send(JSON.stringify(announcementMessage));
+                        client.send(JSON.stringify(announcement));
                     }
                 });
-            } else {
+            } else if (messageObject.type === "chat") {
                 const chatMessage = {
                     username: ws.username,
-                    timestamp: new Date().toLocaleTimeString() 
+                    message: messageObject.text,
+                    timestamp: new Date().toLocaleTimeString(),
                 };
 
-                wss.clients.forEach(client => {
-                    if(client.readyState === ws.OPEN){
-                        client.send(JSON.stringify(chatMessage))
+                wss.clients.forEach((client) => {
+                    if (client.readyState === ws.OPEN) {
+                        client.send(JSON.stringify(chatMessage));
                     }
-                })
+                });
             }
 
             //we can add additional information like timestamp before sending it back to the client

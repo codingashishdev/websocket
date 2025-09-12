@@ -2,99 +2,373 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Chat Application using websocket</title>
-    </head>
-
-    <style>
-        body {
-            font-family: sans-serif;
-        }
-
-        #messages {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            border: 1px solid #ccc;
-            height: 300px;
-            overflow-y: scroll;
-        }
-
-        #messages li {
-            padding: 8px 12px;
-        }
-
-        #messages li:nth-child(odd) {
-            background: #f1f1f1;
-        }
-    </style>
-
-    <body>
-        <h1>Websocket chat</h1>
-        <ul id="messages"></ul>
-
-        <form id="chat-form">
-            <label for="chat-input">How can I help you?</label>
-            <input
-                id="message-box"
-                placeholder="Typing a message..."
-                type="text"
-                required
-                autocomplete="off"
-            />
-            <button id="send">Send</button>
-        </form>
-    </body>
-
-    <script>
-        const socket = new WebSocket("ws://localhost:8080");
-        // first thing we needs to do is to know if we are connected or not
-        // log a message when the connection is opened
-        let username = ""
-        socket.onopen = (event) => {
-            console.log("Successfully connected to the websocket server");
-            
-            // ask for the username
-            username = prompt('Enter your name')
-
-            // Create and send the login message
-            const loginMessage = {
-                type: 'login',
-                username: username
+        <title>Real Time Chat Application</title>
+        <style>
+            :root {
+                --bg: #0b1020;
+                --card: #0f172a;
+                --elev: #111827;
+                --text: #e5e7eb;
+                --muted: #9ca3af;
+                --border: #243147;
+                --bubble: #111b34;
+                --primary: #60a5fa;
+                --primary-600: #3b82f6;
+                --success: #22c55e;
+                --danger: #ef4444;
+                --focus: rgba(59, 130, 246, 0.5);
+                --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
             }
 
-            socket.send(JSON.stringify(loginMessage))
-        };
+            @media (prefers-color-scheme: light) {
+                :root {
+                    --bg: #f1f5f9;
+                    --card: #ffffff;
+                    --elev: #ffffff;
+                    --text: #0f172a;
+                    --muted: #64748b;
+                    --border: #e2e8f0;
+                    --bubble: #f8fafc;
+                    --primary: #2563eb;
+                    --primary-600: #1d4ed8;
+                    --success: #16a34a;
+                    --danger: #dc2626;
+                    --focus: rgba(37, 99, 235, 0.3);
+                    --shadow: 0 10px 20px rgba(2, 8, 23, 0.08);
+                }
+            }
 
-        //listen for messages from server
-        socket.onmessage = (event) => {
-            const messageList = document.getElementById("messages");
-            const newMessage = document.createElement("li");
+            html, body {
+                height: 100%;
+            }
 
-            const messageObject = JSON.parse(event.data);
+            body {
+                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+                background: radial-gradient(1200px 800px at 10% 10%, #1f2937 0%, transparent 60%) var(--bg);
+                color: var(--text);
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 24px;
+            }
 
-            // actual message content is in event.data
-            newMessage.textContent = `${messageObject.userId}: ${messageObject.message} on ${messageObject.timestamp} `;
-            messageList.appendChild(newMessage);
-        };
+            #layout {
+                width: min(1100px, 96vw);
+                background: linear-gradient(180deg, var(--card), var(--elev));
+                border: 1px solid var(--border);
+                border-radius: 18px;
+                box-shadow: var(--shadow);
+                padding: 22px;
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+            }
 
-        const chatForm = document.getElementById("chat-form");
-        const messageBox = document.getElementById("message-box");
+            .header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
 
-        chatForm.addEventListener("submit", (e) => {
-            // prevent the form from resubmitting
-            e.preventDefault();
+            h1 {
+                font-size: clamp(18px, 2vw, 22px);
+                font-weight: 700;
+                margin: 0;
+                letter-spacing: 0.2px;
+            }
 
-            // it is an actual object you want to send
-            const messageObject = {
-                type: 'chat',
-                username: username,
-                message: messageBox.value,
+            .status {
+                display: inline-flex;
+                gap: 10px;
+                align-items: center;
+                padding: 8px 12px;
+                background: var(--bubble);
+                border: 1px solid var(--border);
+                border-radius: 999px;
+                font-size: 12px;
+                color: var(--muted);
+            }
+
+            .dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--muted);
+                box-shadow: 0 0 0 2px color-mix(in srgb, var(--muted), transparent 70%);
+            }
+
+            .dot.connected { background: var(--success); }
+            .dot.disconnected { background: var(--danger); }
+
+            #inner-layout {
+                display: grid;
+                grid-template-columns: 280px 1fr;
+                grid-template-areas:
+                    "user form"
+                    "user messages";
+                gap: 18px;
+                align-items: start;
+            }
+
+            @media (max-width: 900px) {
+                #inner-layout {
+                    grid-template-columns: 1fr;
+                    grid-template-areas:
+                        "user"
+                        "messages"
+                        "form";
+                }
+            }
+
+            #username {
+                grid-area: user;
+                padding: 16px;
+                background: var(--bubble);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+            }
+
+            #username h2 {
+                margin: 0 0 8px;
+                font-size: 14px;
+                color: var(--muted);
+                font-weight: 600;
+            }
+
+            #currentUser {
+                font-size: 16px;
+                color: var(--text);
+                margin: 0;
+                font-weight: 700;
+            }
+
+            #chat-form {
+                grid-area: form;
+                display: grid;
+                grid-template-columns: 1fr auto;
+                gap: 10px 12px;
+                align-items: center;
+                width: 100%;
+            }
+
+            #chat-form label {
+                grid-column: 1 / -1;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--muted);
+                letter-spacing: 0.2px;
+            }
+
+            #chat-form input {
+                width: 100%;
+                padding: 12px 14px;
+                border: 1px solid var(--border);
+                background: var(--card);
+                color: var(--text);
+                border-radius: 10px;
+                font-size: 15px;
+                outline: none;
+                transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            }
+
+            #chat-form input::placeholder {
+                color: color-mix(in srgb, var(--muted), transparent 10%);
+            }
+
+            #chat-form input:focus {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 4px var(--focus);
+                background: color-mix(in srgb, var(--card), transparent 10%);
+            }
+
+            #chat-form button {
+                height: 44px;
+                padding: 0 16px;
+                background: linear-gradient(180deg, var(--primary), var(--primary-600));
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: 700;
+                letter-spacing: 0.2px;
+                transition: transform 0.05s ease, box-shadow 0.15s ease, filter 0.15s ease;
+                box-shadow: 0 6px 16px color-mix(in srgb, var(--primary), transparent 70%);
+            }
+
+            #chat-form button:hover { filter: brightness(1.05); }
+            #chat-form button:active { transform: translateY(1px); }
+
+            #messages-container {
+                grid-area: messages;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+
+            #messages-container span {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--muted);
+            }
+
+            #messages {
+                list-style-type: none;
+                width: 100%;
+                height: clamp(240px, 40vh, 520px);
+                overflow-y: auto;
+                margin: 0;
+                padding: 12px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                background:
+                    linear-gradient(180deg, color-mix(in srgb, var(--bubble), transparent 20%), transparent 10%),
+                    var(--card);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+                scroll-behavior: smooth;
+            }
+
+            #messages li {
+                background: var(--bubble);
+                border: 1px solid var(--border);
+                padding: 10px 12px;
+                border-radius: 12px;
+                margin: 8px 0;
+                line-height: 1.3;
+                box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+            }
+
+            #messages li .meta {
+                display: block;
+                font-size: 12px;
+                color: var(--muted);
+                margin-bottom: 4px;
+                font-weight: 600;
+            }
+
+            /* Scrollbar (WebKit) */
+            #messages::-webkit-scrollbar { width: 10px; }
+            #messages::-webkit-scrollbar-track { background: transparent; }
+            #messages::-webkit-scrollbar-thumb {
+                background: color-mix(in srgb, var(--border), transparent 10%);
+                border-radius: 999px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+            }
+            #messages::-webkit-scrollbar-thumb:hover {
+                background: color-mix(in srgb, var(--primary), transparent 60%);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            
+            <div id="layout">
+                <div class="header">
+                    <h1>Real Time Chat Application</h1>
+                    <div class="status" aria-live="polite">
+                        <span id="status-dot" class="dot"></span>
+                        <span id="status-text">Connecting…</span>
+                    </div>
+                </div>
+    
+                <div id="inner-layout">
+                    <div id="username">
+                        <h2>Current user</h2>
+                        <p id="currentUser">Not set</p>
+                    </div>
+    
+                    <form id="chat-form">
+                        <label for="message-box">Type your message</label>
+                        <input
+                            id="message-box"
+                            placeholder="Write a message and press Enter…"
+                            type="text"
+                            required
+                            autocomplete="off"
+                        />
+                        <button id="send" type="submit" aria-label="Send message">Send</button>
+                    </form>
+    
+                    <div id="messages-container">
+                        <span>Messages</span>
+                        <ul id="messages"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <script>
+            const socket = new WebSocket("ws://localhost:8080");
+
+            let username = "";
+            const currentUser = document.getElementById("currentUser");
+            const statusDot = document.getElementById("status-dot");
+            const statusText = document.getElementById("status-text");
+
+            const setStatus = (connected) => {
+                statusDot.classList.toggle("connected", connected);
+                statusDot.classList.toggle("disconnected", !connected);
+                statusText.textContent = connected ? "Connected" : "Disconnected";
             };
 
-            //JSON.stringify() is a process of packing the actual object into a box so that it can be mained
-            socket.send(JSON.stringify(messageObject));
+            socket.onopen = () => {
+                console.log("Successfully connected to the websocket server");
+                setStatus(true);
 
-            messageBox.value = "";
-        });
-    </script>
+                // Optionally prompt for username and show it
+                username = prompt("Enter your name") || "";
+                currentUser.textContent = username || "Guest";
+
+                // Optionally send login message
+                const loginMessage = { type: "login", username };
+                socket.send(JSON.stringify(loginMessage));
+            };
+
+            socket.onclose = () => setStatus(false);
+            socket.onerror = () => setStatus(false);
+
+            // listen for messages
+            socket.onmessage = (event) => {
+                const messageList = document.getElementById("messages");
+                const li = document.createElement("li");
+                const msg = JSON.parse(event.data);
+
+                if (msg.message) {
+                    // Optional meta line if payload includes fields
+                    if (msg.username || msg.timestamp) {
+                        const meta = document.createElement("span");
+                        meta.className = "meta";
+                        const who = msg.username ?? "Unknown";
+                        const when = msg.timestamp ? ` • ${msg.timestamp}` : "";
+                        meta.textContent = `${who}${when}`;
+                        li.appendChild(meta);
+                    }
+                    li.appendChild(document.createTextNode(msg.message));
+                    messageList.appendChild(li);
+                    messageList.scrollTop = messageList.scrollHeight; // auto-scroll
+                }
+            };
+
+            const chatForm = document.getElementById("chat-form");
+            const messageBox = document.getElementById("message-box");
+
+            chatForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const messageObject = {
+                    type: "chat",
+                    username: username,
+                    message: messageBox.value.trim(),
+                };
+                if (messageObject.message) {
+                    socket.send(JSON.stringify(messageObject));
+                    messageBox.value = "";
+                    messageBox.focus();
+                }
+            });
+        </script>
+    </body>
 </html>
