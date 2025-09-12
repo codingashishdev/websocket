@@ -52,6 +52,7 @@ const wss = new WebSocketServer({ server,
             done(false)
         }
     },
+    //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
     maxPayload: 1024
 });
 
