@@ -363,13 +363,89 @@
         </div>
 
         <script>
-            const socket = new WebSocket("ws://localhost:8080");
-
+            let socket;
             let username = "";
             const currentUser = document.getElementById("currentUser");
             const statusDot = document.getElementById("status-dot");
             const statusText = document.getElementById("status-text");
             const userList = document.getElementById("userList");
+
+            let reconnectionInterval = 1000; // starting with 1
+            let maxReconnectionInterval = 30000; // cap at 30 seconds
+
+            function connect() {
+                socket = new WebSocket("ws://localhost:8080");
+
+                socket.onopen = () => {
+                    console.log(
+                        "Successfully connected to the websocket server"
+                    );
+
+                    reconnectionInterval = 1000;
+
+                    setStatus(true);
+
+                    // Optionally prompt for username and show it
+                    username = prompt("Enter your name") || "";
+                    currentUser.textContent = username || "Guest";
+
+                    // Optionally send login message
+                    const loginMessage = { type: "login", username };
+                    socket.send(JSON.stringify(loginMessage));
+                };
+
+                // listen for messages
+                socket.onmessage = (event) => {
+                    const messageList = document.getElementById("messages");
+                    const msg = JSON.parse(event.data);
+
+                    if (msg.type === "userList") {
+                        updateUserList(msg.users);
+                        return;
+                    }
+
+                    if (msg.message) {
+                        const li = document.createElement("li");
+                        if (msg.username || msg.timestamp) {
+                            const meta = document.createElement("span");
+                            meta.className = "meta";
+                            const who = msg.username ?? "Unknown";
+                            const when = msg.timestamp
+                                ? ` • ${msg.timestamp}`
+                                : "";
+                            meta.textContent = `${who}${when}`;
+                            li.appendChild(meta);
+                        }
+                        li.appendChild(document.createTextNode(msg.message));
+                        messageList.appendChild(li);
+                        messageList.scrollTop = messageList.scrollHeight; // auto-scroll
+                    }
+                };
+
+                socket.onerror = (error) => {
+                    console.log("Error", error);
+                    setStatus(false);
+                };
+
+                socket.onclose = () => {
+                    console.log(
+                        `Websocket disconnected. Trying to reconnect in ${
+                            reconnectionInterval / 1000
+                        }s...`
+                    );
+                    setStatus(false);
+
+                    // wait for sometime and then try to establish connected again
+                    setTimeout(connect, reconnectionInterval);
+
+                    //increasing the interval for the next attempt
+                    //classic ex of exponential backoff with upper bound
+                    reconnectionInterval = Math.min(
+                        reconnectionInterval * 2,
+                        maxReconnectionInterval
+                    );
+                };
+            }
 
             const setStatus = (connected) => {
                 statusDot.classList.toggle("connected", connected);
@@ -393,66 +469,25 @@
                         font-size: 12px;
                         color: var(--text);
                     `;
-                    userList.appendChild(li)
+                    userList.appendChild(li);
                 });
             }
-
-            socket.onopen = () => {
-                console.log("Successfully connected to the websocket server");
-                setStatus(true);
-
-                // Optionally prompt for username and show it
-                username = prompt("Enter your name") || "";
-                currentUser.textContent = username || "Guest";
-
-                // Optionally send login message
-                const loginMessage = { type: "login", username };
-                socket.send(JSON.stringify(loginMessage));
-            };
-
-            socket.onclose = () => setStatus(false);
-            socket.onerror = () => setStatus(false);
-
-            // listen for messages
-            socket.onmessage = (event) => {
-                const messageList = document.getElementById("messages");
-                const msg = JSON.parse(event.data);
-                
-                if(msg.type === 'userList'){
-                    updateUserList(msg.users);
-                    return;
-                }
-
-                if (msg.message) {
-                    const li = document.createElement("li");
-                    if (msg.username || msg.timestamp) {
-                        const meta = document.createElement("span");
-                        meta.className = "meta";
-                        const who = msg.username ?? "Unknown";
-                        const when = msg.timestamp ? ` • ${msg.timestamp}` : "";
-                        meta.textContent = `${who}${when}`;
-                        li.appendChild(meta);
-                    }
-                    li.appendChild(document.createTextNode(msg.message));
-                    messageList.appendChild(li);
-                    messageList.scrollTop = messageList.scrollHeight; // auto-scroll
-                }
-            };
 
             const chatForm = document.getElementById("chat-form");
             const messageBox = document.getElementById("message-box");
 
             chatForm.addEventListener("submit", (e) => {
                 e.preventDefault();
-                const messageObject = {
-                    type: "chat",
-                    username: username,
-                    message: messageBox.value.trim(),
-                };
-                if (messageObject.message) {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    const messageObject = {
+                        type: "chat",
+                        username: username,
+                        message: messageBox.value.trim(),
+                    };
                     socket.send(JSON.stringify(messageObject));
                     messageBox.value = "";
-                    messageBox.focus();
+                } else {
+                    console.log("Socket is not connected");
                 }
             });
         </script>
