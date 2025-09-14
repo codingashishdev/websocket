@@ -488,7 +488,7 @@
                     setStatus(false);
                 };
 
-                const onClose = socket.onclose = () => {
+                socket.onclose = () => {
                     console.log(
                         `Websocket disconnected. Reconnecting in ${
                             reconnectionInterval / 1000
@@ -515,11 +515,14 @@
                 messageBox.disabled = !connected;
                 send.disabled = !connected
 
-                chatForm.style.opacity == connected ? 1 : 0.5
+                chatForm.style.opacity = connected ? 1 : 0.5
             };
 
             closeConnectionBtn.addEventListener("click", ()=>{
-                setStatus(false)
+                if(socket && socket.readyState === WebSocket.OPEN){
+                    socket.close()
+                }
+                // setStatus(false)
             })
 
             function updateUserList(users) {
@@ -542,8 +545,6 @@
                     }
                 });
             }
-
-            
 
             chatForm.addEventListener("submit", (e) => {
                 e.preventDefault();
