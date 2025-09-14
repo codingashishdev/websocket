@@ -111,6 +111,7 @@
             .dot.connected {
                 background: var(--success);
             }
+
             .dot.disconnected {
                 background: var(--danger);
             }
@@ -153,10 +154,57 @@
             #currentUser {
                 font-size: 16px;
                 color: var(--text);
-                margin: 0;
+                margin: 0 0 15px;
                 font-weight: 700;
-                margin-top: 0;
-                margin-bottom: 15px;
+            }
+
+            /* Connected users list */
+            #userList {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            #userList li {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 10px;
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                font-size: 14px;
+                color: var(--text);
+                font-weight: 500;
+                transition: background 0.2s ease;
+            }
+
+            #userList li:hover {
+                background: color-mix(
+                    in srgb,
+                    var(--bubble),
+                    var(--primary) 15%
+                );
+            }
+
+            #userList li .user-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--muted);
+            }
+
+            #userList li.me {
+                background: var(--primary);
+                color: white;
+                font-weight: 600;
+            }
+
+            #userList li.me .user-dot {
+                background: var(--success);
             }
 
             #chat-form {
@@ -219,13 +267,6 @@
                     color-mix(in srgb, var(--primary), transparent 70%);
             }
 
-            #chat-form button:hover {
-                filter: brightness(1.05);
-            }
-            #chat-form button:active {
-                transform: translateY(1px);
-            }
-
             #messages-container {
                 grid-area: messages;
                 display: flex;
@@ -257,6 +298,18 @@
                     var(--card);
                 box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
                 scroll-behavior: smooth;
+                display: flex;
+                flex-direction: column;
+            }
+
+            #messages li.my-message {
+                align-self: flex-end;
+                background: var(--primary);
+                color: white;
+            }
+
+            #messages li.my-message .meta {
+                color: color-mix(in srgb, white, transparent 30%);
             }
 
             #messages li {
@@ -277,22 +330,6 @@
                 font-weight: 600;
             }
 
-            /* Scrollbar (WebKit) */
-            #messages::-webkit-scrollbar {
-                width: 10px;
-            }
-            #messages::-webkit-scrollbar-track {
-                background: transparent;
-            }
-            #messages::-webkit-scrollbar-thumb {
-                background: color-mix(in srgb, var(--border), transparent 10%);
-                border-radius: 999px;
-                border: 2px solid transparent;
-                background-clip: padding-box;
-            }
-            #messages::-webkit-scrollbar-thumb:hover {
-                background: color-mix(in srgb, var(--primary), transparent 60%);
-            }
             #close-connection {
                 height: 44px;
                 padding: 0 16px;
@@ -312,14 +349,26 @@
                 box-shadow: 0 6px 16px
                     color-mix(in srgb, var(--primary), transparent 70%);
             }
+
+            #messages li.announcement {
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                text-align: center;
+                color: var(--muted);
+                font-style: italic;
+                font-size: 13px;
+            }
         </style>
     </head>
+
     <body>
         <div class="container">
             <div id="layout">
                 <div class="header">
                     <h1>Real Time Chat Application</h1>
                     <div class="status" aria-live="polite">
+                        <span id="connection-status"></span>
                         <span id="status-dot" class="dot"></span>
                         <span id="status-text">Connecting…</span>
                     </div>
@@ -329,7 +378,7 @@
                     <div id="username">
                         <h2>Current user</h2>
                         <p id="currentUser">Not set</p>
-                        <h2 id="all-users">Connected users</h2>
+                        <h2>Connected users</h2>
                         <ul id="userList"></ul>
                     </div>
 
@@ -369,32 +418,32 @@
             const statusDot = document.getElementById("status-dot");
             const statusText = document.getElementById("status-text");
             const userList = document.getElementById("userList");
+            const connectionStatus =
+                document.getElementById("connection-status");
+            const chatForm = document.getElementById("chat-form");
+            const messageBox = document.getElementById("message-box");
+            const send = document.getElementById('send')
+            const closeConnectionBtn = document.getElementById('close-connection')
 
-            let reconnectionInterval = 1000; // starting with 1
-            let maxReconnectionInterval = 30000; // cap at 30 seconds
+            let reconnectionInterval = 1000;
+            let maxReconnectionInterval = 30000;
 
             function connect() {
                 socket = new WebSocket("ws://localhost:8080");
 
                 socket.onopen = () => {
-                    console.log(
-                        "Successfully connected to the websocket server"
-                    );
-
+                    console.log("Connected to the websocket server");
                     reconnectionInterval = 1000;
-
                     setStatus(true);
 
-                    // Optionally prompt for username and show it
-                    username = prompt("Enter your name") || "";
-                    currentUser.textContent = username || "Guest";
+                    username = prompt("Enter your name") || "Guest";
 
-                    // Optionally send login message
+                    currentUser.textContent = username;
+
                     const loginMessage = { type: "login", username };
                     socket.send(JSON.stringify(loginMessage));
                 };
 
-                // listen for messages
                 socket.onmessage = (event) => {
                     const messageList = document.getElementById("messages");
                     const msg = JSON.parse(event.data);
@@ -404,8 +453,19 @@
                         return;
                     }
 
+                    if (msg.type === "announcement") {
+                        const li = document.createElement("li");
+                        li.classList.add("announcements");
+                        li.textContent = msg.text;
+                        messageList.appendChild(li);
+                        return;
+                    }
+
                     if (msg.message) {
                         const li = document.createElement("li");
+                        if (msg.username === username) {
+                            li.classList.add("my-message");
+                        }
                         if (msg.username || msg.timestamp) {
                             const meta = document.createElement("span");
                             meta.className = "meta";
@@ -418,28 +478,24 @@
                         }
                         li.appendChild(document.createTextNode(msg.message));
                         messageList.appendChild(li);
-                        messageList.scrollTop = messageList.scrollHeight; // auto-scroll
+                        messageList.scrollTop = messageList.scrollHeight;
                     }
                 };
 
                 socket.onerror = (error) => {
                     console.log("Error", error);
+                    connectionStatus.textContent = error.message;
                     setStatus(false);
                 };
 
-                socket.onclose = () => {
+                const onClose = socket.onclose = () => {
                     console.log(
-                        `Websocket disconnected. Trying to reconnect in ${
+                        `Websocket disconnected. Reconnecting in ${
                             reconnectionInterval / 1000
                         }s...`
                     );
                     setStatus(false);
-
-                    // wait for sometime and then try to establish connected again
                     setTimeout(connect, reconnectionInterval);
-
-                    //increasing the interval for the next attempt
-                    //classic ex of exponential backoff with upper bound
                     reconnectionInterval = Math.min(
                         reconnectionInterval * 2,
                         maxReconnectionInterval
@@ -447,34 +503,47 @@
                 };
             }
 
+            connect();
+
             const setStatus = (connected) => {
                 statusDot.classList.toggle("connected", connected);
                 statusDot.classList.toggle("disconnected", !connected);
                 statusText.textContent = connected
                     ? "Connected"
                     : "Disconnected";
+
+                messageBox.disabled = !connected;
+                send.disabled = !connected
+
+                chatForm.style.opacity == connected ? 1 : 0.5
             };
+
+            closeConnectionBtn.addEventListener("click", ()=>{
+                setStatus(false)
+            })
 
             function updateUserList(users) {
                 userList.innerHTML = "";
                 users.forEach((user) => {
-                    const li = document.createElement("li");
-                    li.textContent = user;
-                    li.style.cssText = `
-                        padding: 4px 8px;
-                        margin: 2px 0;
-                        background: var(--bubble);
-                        border: 1px solid var(--border);
-                        border-radius: 6px;
-                        font-size: 12px;
-                        color: var(--text);
-                    `;
-                    userList.appendChild(li);
+                    if (user !== "Guest") {
+                        const li = document.createElement("li");
+                        const dot = document.createElement("span");
+                        dot.className = "user-dot";
+                        li.appendChild(dot);
+
+                        const name = document.createElement("span");
+                        name.textContent = user;
+                        li.appendChild(name);
+
+                        if (user === username) {
+                            li.classList.add("me");
+                        }
+                        userList.appendChild(li);
+                    }
                 });
             }
 
-            const chatForm = document.getElementById("chat-form");
-            const messageBox = document.getElementById("message-box");
+            
 
             chatForm.addEventListener("submit", (e) => {
                 e.preventDefault();

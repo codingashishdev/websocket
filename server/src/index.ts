@@ -1,9 +1,12 @@
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import rateLimit from "express-rate-limit";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 3000;
 
 interface ChatWebSocket extends WebSocket {
     username?: string;
@@ -34,8 +37,8 @@ const allowedOrigins = [
     "http://127.0.0.1:5500",
     "http://localhost:8080",
     "http://localhost:5500",
-    "https://our-domain-app.com",
-];
+    "https://our-domain-app.com"
+]
 
 function getConnectedUsers(): string[] {
     const users: string[] = [];
@@ -102,6 +105,7 @@ wss.on("connection", (ws: ChatWebSocket) => {
 
                 // create and boardcast an announcement message
                 const announcement = {
+                    type: 'announcement',
                     text: `${ws.username || "Someone"} has joined the chat`,
                 };
 
