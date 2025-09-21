@@ -422,26 +422,22 @@
                 document.getElementById("connection-status");
             const chatForm = document.getElementById("chat-form");
             const messageBox = document.getElementById("message-box");
-            const send = document.getElementById('send')
-            const closeConnectionBtn = document.getElementById('close-connection')
+            const send = document.getElementById("send");
+            const closeConnectionBtn =
+                document.getElementById("close-connection");
 
             let reconnectionInterval = 1000;
             let maxReconnectionInterval = 30000;
 
-            function connect() {
-                socket = new WebSocket("ws://localhost:8080");
+            function connect(token, username) {
+                socket = new WebSocket(`ws://localhost:8080?token=${token}`);
 
                 socket.onopen = () => {
                     console.log("Connected to the websocket server");
                     reconnectionInterval = 1000;
                     setStatus(true);
 
-                    username = prompt("Enter your name") || "Guest";
-
                     currentUser.textContent = username;
-
-                    const loginMessage = { type: "login", username };
-                    socket.send(JSON.stringify(loginMessage));
                 };
 
                 socket.onmessage = (event) => {
@@ -503,7 +499,30 @@
                 };
             }
 
-            connect();
+            const obj = {
+                username: "alice",
+                password: 123456,
+            };
+
+            fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(obj),
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Login Failed!");
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    connect(token, data.username);
+                })
+                .catch((error) => {
+                    console.log("Authentication Failed: ", error);
+                    statusText.textContent = "Authentication failed";
+                    setStatus(false);
+                });
 
             const setStatus = (connected) => {
                 statusDot.classList.toggle("connected", connected);
@@ -513,17 +532,17 @@
                     : "Disconnected";
 
                 messageBox.disabled = !connected;
-                send.disabled = !connected
+                send.disabled = !connected;
 
-                chatForm.style.opacity = connected ? 1 : 0.5
+                chatForm.style.opacity = connected ? 1 : 0.5;
             };
 
-            closeConnectionBtn.addEventListener("click", ()=>{
-                if(socket && socket.readyState === WebSocket.OPEN){
-                    socket.close()
+            closeConnectionBtn.addEventListener("click", () => {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.close();
                 }
                 // setStatus(false)
-            })
+            });
 
             function updateUserList(users) {
                 userList.innerHTML = "";

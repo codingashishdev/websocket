@@ -73,6 +73,8 @@ const wss = new WebSocketServer({
     verifyClient: (info, done) => {
         const origin = info.origin;
 
+        // if(activeToken.has(info.)
+
         // check if the origin is in our allowedOrigns list
         if (allowedOrigins.includes(origin)) {
             //approve if true
