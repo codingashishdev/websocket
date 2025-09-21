@@ -2,6 +2,7 @@ import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -37,8 +38,8 @@ const allowedOrigins = [
     "http://127.0.0.1:5500",
     "http://localhost:8080",
     "http://localhost:5500",
-    "https://our-domain-app.com"
-]
+    "https://our-domain-app.com",
+];
 
 function getConnectedUsers(): string[] {
     const users: string[] = [];
@@ -84,6 +85,43 @@ const wss = new WebSocketServer({
     maxPayload: 1024,
 });
 
+const users: Record<string, { password: string }> = {
+    alice: { password: "123456" },
+    bob: { password: "123456" },
+};
+
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res
+            .status(400)
+            .json({ message: "username and password are required" });
+    }
+
+    const user = users[username];
+
+    if (!user || user.password !== password) {
+        return res
+            .status(401)
+            .json({ message: "Invalid username or password!" });
+    }
+    
+    //simpler way
+    const token = crypto.randomBytes(32).toString('hex')
+    res.json({ token: token, username: username })
+
+    //another way
+    // crypto.generateKey("aes", { length: 512 }, (err, key) => {
+    //     if(err){
+    //         return res.status(500).json({ message: "Error generating token" })
+    //     }
+    //     const token = key.export().toString('hex')
+        
+    //     res.json({ token: token, username: username })
+    // });
+});
+
 wss.on("connection", (ws: ChatWebSocket) => {
     console.log("New client has been connected!!");
     // listening for messages from specific client
@@ -105,7 +143,7 @@ wss.on("connection", (ws: ChatWebSocket) => {
 
                 // create and boardcast an announcement message
                 const announcement = {
-                    type: 'announcement',
+                    type: "announcement",
                     text: `${ws.username || "Someone"} has joined the chat`,
                 };
 
