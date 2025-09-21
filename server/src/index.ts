@@ -9,6 +9,8 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+const activeToken = new Map<String, String>();
+
 interface ChatWebSocket extends WebSocket {
     username?: string;
 }
@@ -109,6 +111,11 @@ app.post("/login", (req, res) => {
     
     //simpler way
     const token = crypto.randomBytes(32).toString('hex')
+
+    //because currently we are not using any database, so to make sure the server remembers the valid token we are using Map DS
+    // to store token and its username as a key value pair 
+    activeToken.set(token, username)
+
     res.json({ token: token, username: username })
 
     //another way
