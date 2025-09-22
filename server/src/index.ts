@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import { URL } from "url";
 
 dotenv.config();
 
@@ -73,8 +74,6 @@ const wss = new WebSocketServer({
     verifyClient: (info, done) => {
         const origin = info.origin;
 
-        // if(activeToken.has(info.)
-
         // check if the origin is in our allowedOrigns list
         if (allowedOrigins.includes(origin)) {
             //approve if true
@@ -83,6 +82,18 @@ const wss = new WebSocketServer({
             console.log(`Connection to origin: ${origin} rejected`);
             //reject if false
             done(false);
+        }
+
+        // only if the url contains the token
+        if (info.req.url?.includes("token")) {
+            const fullUrl = new URL(
+                info.req.url,
+                `http://${info.req.headers.host}`
+            );
+            const token= fullUrl.searchParams.get("token");
+            // if (activeToken.has(token)) {
+                
+            // }
         }
     },
     //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
@@ -110,15 +121,15 @@ app.post("/login", (req, res) => {
             .status(401)
             .json({ message: "Invalid username or password!" });
     }
-    
+
     //simpler way
-    const token = crypto.randomBytes(32).toString('hex')
+    const token = crypto.randomBytes(32).toString("hex");
 
     //because currently we are not using any database, so to make sure the server remembers the valid token we are using Map DS
-    // to store token and its username as a key value pair 
-    activeToken.set(token, username)
+    // to store token and its username as a key value pair
+    activeToken.set(token, username);
 
-    res.json({ token: token, username: username })
+    res.json({ token: token, username: username });
 
     //another way
     // crypto.generateKey("aes", { length: 512 }, (err, key) => {
@@ -126,7 +137,7 @@ app.post("/login", (req, res) => {
     //         return res.status(500).json({ message: "Error generating token" })
     //     }
     //     const token = key.export().toString('hex')
-        
+
     //     res.json({ token: token, username: username })
     // });
 });
