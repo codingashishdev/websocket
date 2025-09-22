@@ -47,9 +47,7 @@ const allowedOrigins = [
 function getConnectedUsers(): string[] {
     const users: string[] = [];
     wss.clients.forEach((client: ChatWebSocket) => {
-        if (client.readyState === WebSocket.OPEN && client.username) {
-            users.push(client.username);
-        }
+        if (client.readyState === WebSocket.OPEN && client.username) users.push(client.username);
     });
     return users;
 }
@@ -63,9 +61,7 @@ function broadcastUserList() {
     };
 
     wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(userListMessage));
-        }
+        if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(userListMessage));
     });
 }
 
@@ -78,31 +74,24 @@ const wss = new WebSocketServer({
         if (!allowedOrigins.includes(origin)) {
             console.log(`Connection to origin: ${origin} rejected`);
             return done(false);
-        } 
-        // else {
-        //     // if the origin is in the allowedOrigns list, we still needs to check for the token validation
-        //     return done(true);
-        // }
+        }
 
         if (info.req.url?.includes("token")) {
             const fullUrl = new URL(
                 info.req.url,
                 `http://${info.req.headers.host}`
             );
-            const token= fullUrl.searchParams.get("token");
+            const token = fullUrl.searchParams.get("token");
 
-            if(!token || !activeToken.has(token)){
+            if (!token || !activeToken.has(token)) {
                 console.log("Connection request error: invalid token");
-                return done(false)
-            }
-            else{
+                return done(false);
+            } else {
                 // find the username based on the entry from our map (activeToken)
                 const username = activeToken.get(token);
-
                 //attaching the username to the request object
-                (info.req as any).username = username
-
-                return done(true)
+                (info.req as any).username = username;
+                return done(true);
             }
         }
     },
@@ -110,6 +99,7 @@ const wss = new WebSocketServer({
     maxPayload: 1024,
 });
 
+// dummy users
 const users: Record<string, { password: string }> = {
     alice: { password: "123456" },
     bob: { password: "123456" },
@@ -138,53 +128,34 @@ app.post("/login", (req, res) => {
     //because currently we are not using any database, so to make sure the server remembers the valid token we are using Map DS
     // to store token and its username as a key value pair
     activeToken.set(token, username);
-
     res.json({ token: token, username: username });
-
-    //another way
-    // crypto.generateKey("aes", { length: 512 }, (err, key) => {
-    //     if(err){
-    //         return res.status(500).json({ message: "Error generating token" })
-    //     }
-    //     const token = key.export().toString('hex')
-
-    //     res.json({ token: token, username: username })
-    // });
 });
 
-wss.on("connection", (ws: ChatWebSocket) => {
+wss.on("connection", (ws: ChatWebSocket, req) => {
     console.log("New client has been connected!!");
+    ws.username = (req as any).username;
+    
+    const accouncement = {
+        type: "accouncement",
+        message: `${ws.username || "unknown"} has joined the chat room`,
+    };
+
+    wss.clients.forEach((client) => {
+        if (client.readyState === ws.OPEN) {
+            client.send(JSON.stringify(accouncement));
+        }
+    });
+
+    // sending broadcase message to all the connected users/clients
+    broadcastUserList();
+
     // listening for messages from specific client
     ws.on("message", (message) => {
         console.log(`Received message: ${message}`);
 
         try {
             const messageObject = JSON.parse(message.toString());
-
-            if (messageObject.type === "login") {
-                if (
-                    !messageObject.username ||
-                    messageObject.username.trim().length === 0
-                ) {
-                    return;
-                }
-                //so we needs to clean the username before storing it
-                ws.username = sanitize(messageObject.username);
-
-                // create and boardcast an announcement message
-                const announcement = {
-                    type: "announcement",
-                    text: `${ws.username || "Someone"} has joined the chat`,
-                };
-
-                wss.clients.forEach((client) => {
-                    if (client.readyState === ws.OPEN) {
-                        client.send(JSON.stringify(announcement));
-                    }
-                });
-
-                broadcastUserList();
-            } else if (messageObject.type === "chat") {
+            if (messageObject.type === "chat") {
                 if (
                     !messageObject.message ||
                     messageObject.message.length > 250
