@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import crypto from "crypto";
-import { URL } from "url";
+import { URL, type Url } from "url";
 
 dotenv.config();
 
@@ -75,25 +75,35 @@ const wss = new WebSocketServer({
         const origin = info.origin;
 
         // check if the origin is in our allowedOrigns list
-        if (allowedOrigins.includes(origin)) {
-            //approve if true
-            done(true);
-        } else {
+        if (!allowedOrigins.includes(origin)) {
             console.log(`Connection to origin: ${origin} rejected`);
-            //reject if false
-            done(false);
-        }
+            return done(false);
+        } 
+        // else {
+        //     // if the origin is in the allowedOrigns list, we still needs to check for the token validation
+        //     return done(true);
+        // }
 
-        // only if the url contains the token
         if (info.req.url?.includes("token")) {
             const fullUrl = new URL(
                 info.req.url,
                 `http://${info.req.headers.host}`
             );
             const token= fullUrl.searchParams.get("token");
-            // if (activeToken.has(token)) {
-                
-            // }
+
+            if(!token || !activeToken.has(token)){
+                console.log("Connection request error: invalid token");
+                return done(false)
+            }
+            else{
+                // find the username based on the entry from our map (activeToken)
+                const username = activeToken.get(token);
+
+                //attaching the username to the request object
+                (info.req as any).username = username
+
+                return done(true)
+            }
         }
     },
     //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
