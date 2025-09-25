@@ -4,9 +4,11 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import { URL, type Url } from "url";
+import { Client } from "pg";
 
 dotenv.config();
 
+const client = new Client()
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -104,6 +106,8 @@ const users: Record<string, { password: string }> = {
     alice: { password: "123456" },
     bob: { password: "123456" },
 };
+
+const connection = await client.connect()
 
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
