@@ -4,12 +4,11 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import { URL, type Url } from "url";
-import { Client } from "pg";
 
 dotenv.config();
 
-const client = new Client()
 const app = express();
+app.use(express.json())
 const port = process.env.PORT || 3000;
 
 const activeToken = new Map<String, String>();
@@ -78,23 +77,26 @@ const wss = new WebSocketServer({
             return done(false);
         }
 
-        if (info.req.url?.includes("token")) {
-            const fullUrl = new URL(
-                info.req.url,
-                `http://${info.req.headers.host}`
-            );
-            const token = fullUrl.searchParams.get("token");
+        if (!info.req.url) {
+            console.log("Connection request error: missing URL");
+            return done(false);
+        }
 
-            if (!token || !activeToken.has(token)) {
-                console.log("Connection request error: invalid token");
-                return done(false);
-            } else {
-                // find the username based on the entry from our map (activeToken)
-                const username = activeToken.get(token);
-                //attaching the username to the request object
-                (info.req as any).username = username;
-                return done(true);
-            }
+        const fullUrl = new URL(
+            info.req.url,
+            `http://${info.req.headers.host}`
+        );
+        const token = fullUrl.searchParams.get("token");
+
+        if (!token || !activeToken.has(token)) {
+            console.log("Connection request error: invalid token");
+            return done(false);
+        } else {
+            // find the username based on the entry from our map (activeToken)
+            const username = activeToken.get(token);
+            //attaching the username to the request object
+            (info.req as any).username = username;
+            return done(true);
         }
     },
     //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
@@ -107,7 +109,6 @@ const users: Record<string, { password: string }> = {
     bob: { password: "123456" },
 };
 
-const connection = await client.connect()
 
 app.post("/login", (req, res) => {
     const { username, password } = req.body;
@@ -138,15 +139,15 @@ app.post("/login", (req, res) => {
 wss.on("connection", (ws: ChatWebSocket, req) => {
     console.log("New client has been connected!!");
     ws.username = (req as any).username;
-    
-    const accouncement = {
-        type: "accouncement",
+
+    const announcement = {
+        type: "announcement",
         message: `${ws.username || "unknown"} has joined the chat room`,
     };
 
     wss.clients.forEach((client) => {
         if (client.readyState === ws.OPEN) {
-            client.send(JSON.stringify(accouncement));
+            client.send(JSON.stringify(announcement));
         }
     });
 
