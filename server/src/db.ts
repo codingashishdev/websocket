@@ -2,10 +2,10 @@ import { Pool } from "pg";
 
 const pool = new Pool({
   user: "postgres",
+  password: "***REMOVED***",
   host: "localhost",
-  database: "websocket-chat",
-  password: "",
-  port: 5433,
+  port: 5432,
+  database: "postgres",
 });
 
 export default pool;
