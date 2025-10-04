@@ -143,33 +143,38 @@ app.post("/register", async (req, res) => {
 			});
 		}
 
-		console.log("Registration error: ", error);
+		console.error("Registration error: ", error instanceof Error ? error.message : error);
 		res.status(500).json({ message: "Internal server error" });
 	}
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
 	const { username, password } = req.body;
 
 	if (!username || !password) {
-		return res
-			.status(400)
-			.json({ message: "username and password are required" });
+		return res.status(400).json({ message: "username and password are required" });
 	}
 
-	const user = users[username];
+	try {
+		const user = await pool.query('SELECT password_hash from users WHERE username = $1', [username])
+		if (user.rows.length === 0) {
+			return res.status(401).json({ message: "Invalid username or password" })
+		}
 
-	if (!user || user.password !== password) {
-		return res.status(401).json({ message: "Invalid username or password!" });
+		const isValid = await bcrypt.compare(password, user.rows[0].password_hash);
+
+		if (!isValid) {
+			return res.status(401).json({ message: "Invalid username or password" })
+		}
+
+		//create token
+		const token = crypto.randomBytes(32).toString("hex")
+		activeToken.set(token, username)
+		res.json({ token, username })
+	} catch (error) {
+		console.error("Login error: ", error);
+		res.status(500).json({ message: "Internal server error" })
 	}
-
-	//simpler way
-	const token = crypto.randomBytes(32).toString("hex");
-
-	//because currently we are not using any database, so to make sure the server remembers the valid token we are using Map DS
-	// to store token and its username as a key value pair
-	activeToken.set(token, username);
-	res.json({ token: token, username: username });
 });
 
 wss.on("connection", (ws: ChatWebSocket, req) => {
