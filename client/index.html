@@ -60,6 +60,7 @@
         }
 
         #layout {
+			display: none;
             width: min(1100px, 96vw);
             background: linear-gradient(180deg, var(--card), var(--elev));
             border: 1px solid var(--border);
@@ -423,6 +424,7 @@
                 username: usernameInput.value,
                 password: passwordInput.value
             }
+
             Login(loginCredentials)
         })
 
@@ -442,6 +444,7 @@
         })
         let socket;
         let username = "";
+		let token = "";
         const currentUser = document.getElementById("currentUser");
         const statusDot = document.getElementById("status-dot");
         const statusText = document.getElementById("status-text");
@@ -518,7 +521,10 @@
                     }s...`
                 );
                 setStatus(false);
-                setTimeout(connect, reconnectionInterval);
+				setTimeout(() => {
+					connect(token, username), reconnectionInterval
+				});
+
                 reconnectionInterval = Math.min(
                     reconnectionInterval * 2,
                     maxReconnectionInterval
@@ -526,13 +532,13 @@
             };
         }
 
-        async function Register() {
+        async function Register(obj) {
             await fetch("http://localhost:8080/register", {
                 method: "POST",
                 headers: {
                     "Content-Type:": "application/json"
                 },
-                body: JSON.stringify()
+                body: JSON.stringify(obj)
             })
                 .then(response => {
                     if (!response.ok) {
@@ -548,7 +554,7 @@
                 })
         }
 
-        async function Login() {
+        async function Login(obj) {
             await fetch("http://localhost:8080/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -561,8 +567,14 @@
                     return response.json();
                 })
                 .then((data) => {
-                    connect(data.token, data.username);
-                })
+					document.getElementById('login').style.display = 'none';
+					document.getElementById('layout').style.display = 'flex';
+
+					token = data.token
+					username = data.username
+					
+					connect(token, username);
+				})
                 .catch((error) => {
                     console.log("Authentication Failed: ", error);
                     statusText.textContent = "Authentication failed";
