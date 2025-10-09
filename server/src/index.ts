@@ -13,8 +13,6 @@ const app = express();
 app.use(express.json());
 const port = process.env.PORT || 8080;
 
-const activeToken = new Map<String, String>();
-
 interface ChatWebSocket extends WebSocket {
 	username?: string;
 }
@@ -89,26 +87,19 @@ const wss = new WebSocketServer({
 		const fullUrl = new URL(info.req.url, `http://${info.req.headers.host}`);
 		const token = fullUrl.searchParams.get("token");
 
-		if (!token || !activeToken.has(token)) {
+		const isTokenAvail = await pool.query('SELECT * from active_tokens WHERE token=($1)', [token])
+
+		if (!token || !isTokenAvail) {
 			console.log("Connection request error: invalid token");
 			return done(false);
 		} else {
-			// find the username based on the entry from our map (activeToken)
-			const username = activeToken.get(token);
-			//attaching the username to the request object
-			(info.req as any).username = username;
+			(info.req as any).username = isTokenAvail.rows[0].username;
 			return done(true);
 		}
 	},
 	//because the typical size of the chat message is less than 1024 kilobytes(1 kb)
 	maxPayload: 1024,
 });
-
-// dummy users
-const users: Record<string, { password: string }> = {
-	alice: { password: "123456" },
-	bob: { password: "123456" },
-};
 
 app.post("/register", async (req, res) => {
 	try {
@@ -169,7 +160,12 @@ app.post("/login", async (req, res) => {
 
 		//create token
 		const token = crypto.randomBytes(32).toString("hex")
-		activeToken.set(token, username)
+		const storeToken = await pool.query('INSERT INTO active_tokens (token, username) VALUES ($1, $2)', [token, username])
+		if (storeToken.rows.length == 0) {
+			res.status(401).json({
+				message: "Error while generating a token"
+			})
+		}
 		res.json({ token, username })
 	} catch (error) {
 		console.error("Login error: ", error);
