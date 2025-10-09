@@ -87,15 +87,21 @@ const wss = new WebSocketServer({
 		const fullUrl = new URL(info.req.url, `http://${info.req.headers.host}`);
 		const token = fullUrl.searchParams.get("token");
 
-		const isTokenAvail = await pool.query('SELECT * from active_tokens WHERE token=($1)', [token])
-
-		if (!token || !isTokenAvail) {
-			console.log("Connection request error: invalid token");
-			return done(false);
-		} else {
-			(info.req as any).username = isTokenAvail.rows[0].username;
-			return done(true);
-		}
+		pool.query('SELECT * from active_tokens WHERE token= $1', [token])
+			.then(result => {
+				if (result.rows.length == 0) {
+					//meaning the token not found in DB, reject the connection request
+					done(false)
+				}
+				else {
+					(info.req as any).username = result.rows[0].username
+					done(true)
+				}
+			})
+			.catch(error => {
+				console.log("Token verification error: ", error);
+				done(false)
+			})
 	},
 	//because the typical size of the chat message is less than 1024 kilobytes(1 kb)
 	maxPayload: 1024,

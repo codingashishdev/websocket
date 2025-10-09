@@ -350,20 +350,21 @@
 </head>
 
 <body>
-    <div id="register">
-        <h1>Register</h1>
-        <form action="" method="post">
-            <input type="text" placeholder="username">
-            <input type="password" name="password" id="password">
-            <button type="submit">Register</button>
-        </form>
-    </div>
 
     <div id="login">
         <h1>Login</h1>
         <form action="" method="post">
-            <input type="text" placeholder="username">
-            <input type="password" name="password" id="password">
+            <input type="text" name="username" id="username-input" placeholder="username">
+            <input type="password" name="password" id="password" placeholder="password">
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div id="register">
+        <h1>Register</h1>
+        <form action="" method="post">
+            <input type="text" name="password" id="register-username" placeholder="username">
+            <input type="password" name="password" id="register-password" placeholder="password">
             <button type="submit">Register</button>
         </form>
     </div>
@@ -407,6 +408,38 @@
     </div>
 
     <script>
+        const login = document.querySelector('#login')
+        const register = document.querySelector('#register')
+
+        login.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            //get the form element
+            const form = e.target;
+            const usernameInput = form.querySelector('input[name="username"]')
+            const passwordInput = form.querySelector('input[name="password"]')
+
+            const loginCredentials = {
+                username: usernameInput.value,
+                password: passwordInput.value
+            }
+            Login(loginCredentials)
+        })
+
+        register.addEventListener('submit', (e) => {
+            e.preventDefault()
+
+            const form = e.target;
+            const usernameInput = form.querySelector('input[name="username"]')
+            const passwordInput = form.querySelector('input[name="password"]')
+
+            const registration = {
+                username: usernameInput.value,
+                password: passwordInput.value
+            }
+
+            Register(registration);
+        })
         let socket;
         let username = "";
         const currentUser = document.getElementById("currentUser");
@@ -493,30 +526,49 @@
             };
         }
 
-        const obj = {
-            username: "alice",
-            password: 123456,
-        };
+        async function Register() {
+            await fetch("http://localhost:8080/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type:": "application/json"
+                },
+                body: JSON.stringify()
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Registration failed")
+                    }
+                    return response.json()
+                })
+                .then(data => {
+                    console.log("Registration successful: ", data)
+                })
+                .catch(error => {
+                    console.log("Registration failed: ", error)
+                })
+        }
 
-        fetch("http::localhost:8080/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(obj),
-        })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Login Failed!");
-                }
-                return response.json();
+        async function Login() {
+            await fetch("http://localhost:8080/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(obj),
             })
-            .then((data) => {
-                connect(data.token, data.username);
-            })
-            .catch((error) => {
-                console.log("Authentication Failed: ", error);
-                statusText.textContent = "Authentication failed";
-                setStatus(false);
-            });
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Login Failed!");
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    connect(data.token, data.username);
+                })
+                .catch((error) => {
+                    console.log("Authentication Failed: ", error);
+                    statusText.textContent = "Authentication failed";
+                    setStatus(false);
+                });
+        }
 
         const setStatus = (connected) => {
             statusDot.classList.toggle("connected", connected);
