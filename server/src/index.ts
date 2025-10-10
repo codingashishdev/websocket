@@ -6,11 +6,16 @@ import crypto from "crypto";
 import { URL, type Url } from "url";
 import bcrypt from "bcrypt";
 import pool from "./db.js";
+import cors from "cors";
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors());
+
 app.use(express.json());
+
 const port = process.env.PORT || 8080;
 
 interface ChatWebSocket extends WebSocket {
@@ -42,7 +47,6 @@ const allowedOrigins = [
 	"http://127.0.0.1:5500",
 	"http://localhost:8080",
 	"http://localhost:5500",
-	"https://our-domain-app.com",
 ];
 
 function getConnectedUsers(): string[] {
@@ -87,21 +91,21 @@ const wss = new WebSocketServer({
 		const fullUrl = new URL(info.req.url, `http://${info.req.headers.host}`);
 		const token = fullUrl.searchParams.get("token");
 
-		pool.query('SELECT * from active_tokens WHERE token= $1', [token])
-			.then(result => {
+		pool
+			.query("SELECT * from active_tokens WHERE token= $1", [token])
+			.then((result) => {
 				if (result.rows.length == 0) {
 					//meaning the token not found in DB, reject the connection request
-					done(false)
-				}
-				else {
-					(info.req as any).username = result.rows[0].username
-					done(true)
+					done(false);
+				} else {
+					(info.req as any).username = result.rows[0].username;
+					done(true);
 				}
 			})
-			.catch(error => {
+			.catch((error) => {
 				console.log("Token verification error: ", error);
-				done(false)
-			})
+				done(false);
+			});
 	},
 	//because the typical size of the chat message is less than 1024 kilobytes(1 kb)
 	maxPayload: 1024,
@@ -109,38 +113,44 @@ const wss = new WebSocketServer({
 
 app.post("/register", async (req, res) => {
 	try {
-		if (!req.body || typeof req.body !== 'object') {
+		if (!req.body || typeof req.body !== "object") {
 			return res.status(400).json({
-				message: "Invalid request body"
-			})
+				message: "Invalid request body",
+			});
 		}
 		const { username, password } = req.body;
 
 		if (!username || !password || password.length < 6) {
 			return res.status(400).json({
-				message: "Username and a password of at least 6 characters are required.",
+				message:
+					"Username and a password of at least 6 characters are required.",
 			});
 		}
 
 		const saltRounds = 10;
 		const password_hash = await bcrypt.hash(password, saltRounds);
 
-		const newUser = await pool.query('INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING username', [username, password_hash])
+		const newUser = await pool.query(
+			"INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING username",
+			[username, password_hash],
+		);
 
 		res.status(201).json({
 			message: "User created successfully",
-			username: newUser.rows[0].username
-		})
-
+			username: newUser.rows[0].username,
+		});
 	} catch (error) {
 		// checking for a duplicate username
-		if (error instanceof Error && 'code' in error && error.code === "23505") {
+		if (error instanceof Error && "code" in error && error.code === "23505") {
 			return res.status(409).json({
 				message: "Username already exists",
 			});
 		}
 
-		console.error("Registration error: ", error instanceof Error ? error.message : error);
+		console.error(
+			"Registration error: ",
+			error instanceof Error ? error.message : error,
+		);
 		res.status(500).json({ message: "Internal server error" });
 	}
 });
@@ -149,33 +159,37 @@ app.post("/login", async (req, res) => {
 	const { username, password } = req.body;
 
 	if (!username || !password) {
-		return res.status(400).json({ message: "username and password are required" });
+		return res
+			.status(400)
+			.json({ message: "username and password are required" });
 	}
 
 	try {
-		const user = await pool.query('SELECT password_hash from users WHERE username = $1', [username])
+		const user = await pool.query(
+			"SELECT password_hash from users WHERE username = $1",
+			[username],
+		);
 		if (user.rows.length === 0) {
-			return res.status(401).json({ message: "Invalid username or password" })
+			return res.status(401).json({ message: "Invalid username or password" });
 		}
 
 		const isValid = await bcrypt.compare(password, user.rows[0].password_hash);
 
 		if (!isValid) {
-			return res.status(401).json({ message: "Invalid username or password" })
+			return res.status(401).json({ message: "Invalid username or password" });
 		}
 
 		//create token
-		const token = crypto.randomBytes(32).toString("hex")
-		const storeToken = await pool.query('INSERT INTO active_tokens (token, username) VALUES ($1, $2)', [token, username])
-		if (storeToken.rows.length == 0) {
-			res.status(401).json({
-				message: "Error while generating a token"
-			})
-		}
-		res.json({ token, username })
+		const token = crypto.randomBytes(32).toString("hex");
+		await pool.query(
+			"INSERT INTO active_tokens (token, username) VALUES ($1, $2)",
+			[token, username],
+		);
+
+		res.json({ token, username });
 	} catch (error) {
 		console.error("Login error: ", error);
-		res.status(500).json({ message: "Internal server error" })
+		res.status(500).json({ message: "Internal server error" });
 	}
 });
 
