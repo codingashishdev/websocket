@@ -78,7 +78,7 @@ const wss = new WebSocketServer({
 	verifyClient: (info, done) => {
 		const origin = info.origin;
 
-		if(!origin){
+		if (!origin) {
 			console.log('Origin not found')
 		}
 
@@ -197,6 +197,33 @@ app.post("/login", async (req, res) => {
 		res.status(500).json({ message: "Internal server error" });
 	}
 });
+
+app.post('/logout', async (req, res) => {
+	try {
+		const { token } = req.body;
+
+		if (!token) {
+			return res
+				.status(400)
+				.json({ message: "Token not found" })
+		}
+
+		const deletedUser = await pool.query('DELETE FROM active_tokens WHERE token=$1', [token])
+
+		if (deletedUser.rowCount === 0) {
+			return res.status(401).json({ message: "Invalid token" });
+		}
+
+		return res.status(200).json({
+			message: "User logout successfully"
+		})
+	} catch (err) {
+		console.log("Logout error: ", err)
+		return res.status(500).json({
+			message: "Internal server error"
+		})
+	}
+})
 
 wss.on("connection", (ws: ChatWebSocket, req) => {
 	console.log("New client has been connected!!");
