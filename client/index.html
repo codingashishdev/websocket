@@ -525,7 +525,7 @@
 
                 <div id="inner-layout">
                     <div id="username">
-                        <h2>Current user</h2>
+                        <h2>Me</h2>
                         <p id="currentUser">Not set</p>
                         <h2>Connected users</h2>
                         <ul id="userList"></ul>
@@ -732,11 +732,10 @@
 					this.username = username
 
 					loginView.style.display = 'none'
-					register.style.display = 'none'
-					charForm.style.display = 'flex'
+					registerView.style.display = 'none'
+					document.getElementById('layout').style.display = 'flex'
 					
 					connect(token, username)
-
 				} catch(error){
 					statusText.textContent = `Login Failed: ${error.message}`
 					setStatus(false)

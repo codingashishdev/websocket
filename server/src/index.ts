@@ -47,6 +47,7 @@ const allowedOrigins = [
 	"http://127.0.0.1:5500",
 	"http://localhost:8080",
 	"http://localhost:5500",
+	"ws://localhost:8080"
 ];
 
 function getConnectedUsers(): string[] {
@@ -76,6 +77,10 @@ const wss = new WebSocketServer({
 	server,
 	verifyClient: (info, done) => {
 		const origin = info.origin;
+
+		if(!origin){
+			console.log('Origin not found')
+		}
 
 		// check if the origin is in our allowedOrigns list
 		if (!allowedOrigins.includes(origin)) {
