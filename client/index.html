@@ -345,7 +345,7 @@
                 font-weight: 600;
             }
 
-            #close-connection {
+            #logout {
                 height: 44px;
                 padding: 0 16px;
                 background: linear-gradient(
@@ -378,19 +378,23 @@
             }
 
 			#login{
+				display: block;
+			}
+
+			#register{
 				display: none;
 			}
 
-			#login #login-form{
+			#login form{
 				display: flex;
-				justify-content: center;
-				align-items: center;
+				flex-direction: column;
+				gap: 18px;
 			}
 
-			#register #register-form{
+			#register form{
 				display: flex;
-				justify-content: center;
-				align-items: center;
+				flex-direction: column;
+				gap: 18px;
 			}
 
 			.auth-form-container{
@@ -438,13 +442,13 @@
 			.auth-form-container button {
 				height: 44px;
 				background: linear-gradient(180deg, var(--primary), var(--primary-600));
-				color: white;
-				border: none;
-				border-radius: 10px;
-				cursor: pointer;
-				font-weight: 700;
-				font-size: 16px;
-				transition: filter 0.15s ease;
+			 color: white;
+			 border: none;
+			 border-radius: 10px;
+			 cursor: pointer;
+			 font-weight: 700;
+			 font-size: 16px;
+			 transition: filter 0.15s ease;
 			}
 
 			.auth-form-container button:hover {
@@ -512,50 +516,48 @@
 			<p>Already have an account? <a href="#" id="show-login-link">Login here</a>  </p>
         </div>
 
-        <div class="container">
-            <div id="layout">
-                <div class="header">
-                    <h1>Real Time Chat Application</h1>
-                    <div class="status" aria-live="polite">
-                        <span id="connection-status"></span>
-                        <span id="status-dot" class="dot"></span>
-                        <span id="status-text">Connecting…</span>
-                    </div>
+        <div id="layout">
+            <div class="header">
+                <h1>Real Time Chat Application</h1>
+                <div class="status" aria-live="polite">
+                    <span id="connection-status"></span>
+                    <span id="status-dot" class="dot"></span>
+                    <span id="status-text">Connecting…</span>
+                </div>
+            </div>
+
+            <div id="inner-layout">
+                <div id="username">
+                    <h2>Me</h2>
+                    <p id="currentUser">Not set</p>
+                    <h2>Connected users</h2>
+                    <ul id="userList"></ul>
                 </div>
 
-                <div id="inner-layout">
-                    <div id="username">
-                        <h2>Me</h2>
-                        <p id="currentUser">Not set</p>
-                        <h2>Connected users</h2>
-                        <ul id="userList"></ul>
-                    </div>
+                <button id="logout">Logout</button>
 
-                    <button id="close-connection">Close</button>
+                <form id="chat-form">
+                    <label for="message-box">Type your message</label>
+                    <input
+                        id="message-box"
+                        placeholder="Write a message and press Enter…"
+                        type="text"
+                        required
+                        autocomplete="off"
+                        maxlength="250"
+                    />
+                    <button
+                        id="send"
+                        type="submit"
+                        aria-label="Send message"
+                    >
+                        Send
+                    </button>
+                </form>
 
-                    <form id="chat-form">
-                        <label for="message-box">Type your message</label>
-                        <input
-                            id="message-box"
-                            placeholder="Write a message and press Enter…"
-                            type="text"
-                            required
-                            autocomplete="off"
-                            maxlength="250"
-                        />
-                        <button
-                            id="send"
-                            type="submit"
-                            aria-label="Send message"
-                        >
-                            Send
-                        </button>
-                    </form>
-
-                    <div id="messages-container">
-                        <span>Messages</span>
-                        <ul id="messages"></ul>
-                    </div>
+                <div id="messages-container">
+                    <span>Messages</span>
+                    <ul id="messages"></ul>
                 </div>
             </div>
         </div>
@@ -563,7 +565,7 @@
         <script>
             const loginView = document.querySelector("#login");
             const registerView = document.querySelector("#register");
-			const chatView = document.querySelector("layout")
+			const chatView = document.querySelector("#layout")
 
 			const loginForm = document.querySelector('#login-form');
 			const registerForm = document.querySelector('#register-form');
@@ -609,10 +611,10 @@
                 document.getElementById("connection-status");
             const messageBox = document.getElementById("message-box");
             const sendButton = document.getElementById("send");
-            const closeConnectionBtn =
-                document.getElementById("close-connection");
+            const logout =
+                document.getElementById("logout");
 
-            let reconnectionInterval = 1000;
+            let reconnectionInterval = 5000;
             let maxReconnectionInterval = 30000;
 
             function connect(token, username) {
@@ -620,7 +622,7 @@
 
                 socket.onopen = () => {
                     console.log("Connected to the websocket server");
-                    reconnectionInterval = 1000;
+                    reconnectionInterval = 5000;
                     setStatus(true);
 
                     currentUser.textContent = username;
@@ -689,13 +691,36 @@
                 };
             }
 
+            async function Logout(token){
+                try {
+                    const response = await fetch("http://localhost:8080/logout", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ token }),
+                    })
+                    
+                    if(!response.ok){
+                        throw new Error("Logout Failed");
+                    }
+
+                    alert("User logout successfully")
+                    socket.close()
+                    chatView.style.display = "none"
+                    loginView.style.display = "block";
+                } catch (error) {
+                    alert('Logout error: ', error.message)
+                }
+            }
+
             async function Register(username, password) {
 				try{
 					const response = await fetch("http://localhost:8080/register", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-						 },
+						},
 						body: JSON.stringify({ username, password }),
 				    })
 
@@ -756,9 +781,9 @@
                 chatForm.style.opacity = connected ? 1 : 0.5;
             };
 
-            closeConnectionBtn.addEventListener("click", () => {
+            logout.addEventListener("click", () => {
                 if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.close();
+                    Logout(token)
                 }
             });
 
