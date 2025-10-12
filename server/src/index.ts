@@ -7,6 +7,7 @@ import bcrypt from "bcrypt";
 import pool from "./db.js";
 import cors from "cors";
 import jwt from "jsonwebtoken"
+import logger from "./logger.js";
 
 dotenv.config();
 
@@ -41,7 +42,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 const server = app.listen(port, () => {
-    console.log(`Server is running on the localhost port: ${port} `);
+    logger.info(`Server is running on the localhost port: ${port} `)
 });
 
 const allowedOrigins = [
