@@ -308,3 +308,33 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
         }, 100);
     });
 });
+
+function GraceFullShutdown() {
+    console.log('Shutdown signal received, starting gracefull shutdown.....')
+
+    // 1. stopping http server from receiving new connections
+    server.close((err) => {
+        if (err) {
+            console.log('Error during HTTP server shutdown: ', err)
+            process.exit(1)
+        }
+
+        console.log('HTTP server closed')
+
+        // 2. closing the websocket server
+        wss.close()
+        console.log('Websocket server ended')
+
+        // 3. closing the database connection
+        pool.end(() => {
+            console.log('Database pool closed')
+
+            // 4. exit the process clearly
+            console.log('Graceful shutdown complete.')
+            process.exit(0)
+        })
+    })
+}
+
+process.on('SIGINT', GraceFullShutdown)
+process.on('SIGTERM', GraceFullShutdown)
