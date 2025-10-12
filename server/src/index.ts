@@ -2,12 +2,11 @@ import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
-import crypto from "crypto";
 import { URL, type Url } from "url";
 import bcrypt from "bcrypt";
 import pool from "./db.js";
 import cors from "cors";
-import { time, timeStamp } from "console";
+import jwt from "jsonwebtoken"
 
 dotenv.config();
 
@@ -18,6 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 const port = process.env.PORT || 8080;
+const secret = process.env.JWT_SECRET;
 
 interface ChatWebSocket extends WebSocket {
     username?: string;
@@ -97,21 +97,40 @@ const wss = new WebSocketServer({
         const fullUrl = new URL(info.req.url, `http://${info.req.headers.host}`);
         const token = fullUrl.searchParams.get("token");
 
-        pool
-            .query("SELECT * from active_tokens WHERE token= $1", [token])
-            .then((result) => {
-                if (result.rows.length == 0) {
-                    //meaning the token not found in DB, reject the connection request
+        if (!token) {
+            console.error("Connection rejected: Token not found in URL");
+            return done(false)
+        }
+
+        if (!secret) {
+            console.log("server error: JWT Token is not defined")
+            return done(false)
+        }
+
+        jwt.verify(token, secret, (error, decoded) => {
+            if (error) {
+                console.log("Token verification error", error.message)
+                return done(false)
+            }
+
+            pool
+                .query("SELECT * from active_tokens WHERE token= $1", [token])
+                .then((result) => {
+                    if (result.rows.length == 0) {
+                        //meaning the token not found in DB, reject the connection request
+                        done(false);
+                    } else {
+                        (info.req as any).username = result.rows[0].username;
+                        done(true);
+                    }
+                })
+                .catch((error) => {
+                    console.log("Token verification error: ", error);
                     done(false);
-                } else {
-                    (info.req as any).username = result.rows[0].username;
-                    done(true);
-                }
-            })
-            .catch((error) => {
-                console.log("Token verification error: ", error);
-                done(false);
-            });
+                });
+        })
+
+
     },
     //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
     maxPayload: 1024,
@@ -185,8 +204,13 @@ app.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid username or password" });
         }
 
-        //create token
-        const token = crypto.randomBytes(32).toString("hex");
+        if (!secret) {
+            console.error("JWT_SECRET is not defined");
+            return res.status(500).json({ message: "Internal server error" });
+        }
+
+        const token = jwt.sign({ username }, secret, { expiresIn: '1h' });
+
         await pool.query(
             "INSERT INTO active_tokens (token, username) VALUES ($1, $2)",
             [token, username],
