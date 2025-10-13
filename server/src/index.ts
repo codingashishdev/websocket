@@ -62,7 +62,7 @@ function getConnectedUsers(): string[] {
 }
 
 //helper function to broadcast list of users to all the connected users(clients)
-function broadcastUserList() {
+function broadcastUserlist() {
     const connectedUsers = getConnectedUsers();
     const userListMessage = {
         type: "userList",
@@ -80,18 +80,14 @@ const wss = new WebSocketServer({
     verifyClient: (info, done) => {
         const origin = info.origin;
 
-        if (!origin) {
-            console.log('Origin not found')
-        }
-
         // check if the origin is in our allowedOrigns list
         if (!allowedOrigins.includes(origin)) {
-            console.log(`Connection to origin: ${origin} rejected`);
+            logger.error(`Connection to origin: ${origin} rejected`)
             return done(false);
         }
 
         if (!info.req.url) {
-            console.log("Connection request error: missing URL");
+            logger.error('Connection request error: missing URL')
             return done(false);
         }
 
@@ -99,18 +95,18 @@ const wss = new WebSocketServer({
         const token = fullUrl.searchParams.get("token");
 
         if (!token) {
-            console.error("Connection rejected: Token not found in URL");
+            logger.error('Connection rejected: Token not found in URL');
             return done(false)
         }
 
         if (!secret) {
-            console.log("server error: JWT Token is not defined")
+            logger.error("server error: JWT Token is not defined")
             return done(false)
         }
 
         jwt.verify(token, secret, (error, decoded) => {
             if (error) {
-                console.log("Token verification error", error.message)
+                logger.error("Token verification error", error.message)
                 return done(false)
             }
 
@@ -118,7 +114,6 @@ const wss = new WebSocketServer({
                 .query("SELECT * from active_tokens WHERE token= $1", [token])
                 .then((result) => {
                     if (result.rows.length == 0) {
-                        //meaning the token not found in DB, reject the connection request
                         done(false);
                     } else {
                         (info.req as any).username = result.rows[0].username;
@@ -126,12 +121,10 @@ const wss = new WebSocketServer({
                     }
                 })
                 .catch((error) => {
-                    console.log("Token verification error: ", error);
+                    logger.error("Token verification error: ", error);
                     done(false);
                 });
         })
-
-
     },
     //because the typical size of the chat message is less than 1024 kilobytes(1 kb)
     maxPayload: 1024,
@@ -173,7 +166,7 @@ app.post("/register", async (req, res) => {
             });
         }
 
-        console.error(
+        logger.error(
             "Registration error: ",
             error instanceof Error ? error.message : error,
         );
@@ -219,7 +212,7 @@ app.post("/login", async (req, res) => {
 
         res.json({ token, username });
     } catch (error) {
-        console.error("Login error: ", error);
+        logger.error("Login error: ", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
@@ -244,19 +237,19 @@ app.post('/logout', async (req, res) => {
             message: "User logout successfully"
         })
     } catch (err) {
-        console.log("Logout error: ", err)
+        logger.error("Logout error: ", err)
         return res.status(500).json({
             message: "Internal server error"
         })
     }
 })
 
-app.get('health', (req, res) => {
+app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timeStamp: new Date().toISOString() });
 })
 
 wss.on("connection", (ws: ChatWebSocket, req) => {
-    console.log("New client has been connected!!");
+    logger.info("New client has been connected!!");
     ws.username = (req as any).username;
 
     const announcement = {
@@ -271,11 +264,11 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
     });
 
     // sending broadcase message to all the connected users/clients
-    broadcastUserList();
+    broadcastUserlist();
 
     // listening for messages from specific client
     ws.on("message", (message) => {
-        console.log(`Received message: ${message}`);
+        logger.debug(`Received message: ${message}`);
 
         try {
             const messageObject = JSON.parse(message.toString());
@@ -296,46 +289,46 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
                 });
             }
         } catch (error) {
-            console.log("Error Parsing JSON: ", error);
+            logger.error("Error Parsing JSON: ", error);
         }
     });
 
     // handling client disconnecting
     ws.on("close", () => {
-        console.log("Client has disconneted");
+        logger.info("Client has disconneted");
 
         setTimeout(() => {
-            broadcastUserList();
+            broadcastUserlist();
         }, 100);
     });
 });
 
-function GraceFullShutdown() {
-    console.log('Shutdown signal received, starting gracefull shutdown.....')
+function gracefulShutdown() {
+    logger.info('Shutdown signal received, starting gracefull shutdown.....')
 
     // 1. stopping http server from receiving new connections
     server.close((err) => {
         if (err) {
-            console.log('Error during HTTP server shutdown: ', err)
+            logger.error('Error during HTTP server shutdown: ', err)
             process.exit(1)
         }
 
-        console.log('HTTP server closed')
+        logger.info('HTTP server closed')
 
         // 2. closing the websocket server
         wss.close()
-        console.log('Websocket server ended')
+        logger.info('Websocket server ended')
 
         // 3. closing the database connection
         pool.end(() => {
-            console.log('Database pool closed')
+            logger.info('Database pool closed')
 
             // 4. exit the process clearly
-            console.log('Graceful shutdown complete.')
+            logger.info('Graceful shutdown complete.')
             process.exit(0)
         })
     })
 }
 
-process.on('SIGINT', GraceFullShutdown)
-process.on('SIGTERM', GraceFullShutdown)
+process.on('SIGINT', gracefulShutdown)
+process.on('SIGTERM', gracefulShutdown)

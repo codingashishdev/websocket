@@ -1,4 +1,4 @@
-import winston, { createLogger, loggers } from "winston"
+import winston, { createLogger } from "winston"
 
 
 // determining the log level based on the environment
