@@ -10,6 +10,8 @@ import jwt from "jsonwebtoken"
 import Sentry from "@sentry/node"
 import logger from "./logger.js";
 import express from "express";
+import { sanitize } from "./utils/sanitize.js";
+import { isValidUsername, isValidPassword, isValidMessage } from "./utils/validation.js";
 dotenv.config();
 
 const app = express();
@@ -32,15 +34,6 @@ const rateLimitInterval = 10 * 1000
 
 interface ChatWebSocket extends WebSocket {
     username?: string;
-}
-
-function sanitize(str: string): string {
-    return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39");
 }
 
 const server = app.listen(port, () => {
@@ -141,7 +134,7 @@ app.post("/register", async (req, res) => {
         }
         const { username, password } = req.body;
 
-        if (!username || !password || password.length < 6) {
+        if (!isValidUsername(username) || !isValidPassword(password)) {
             return res.status(400).json({
                 message:
                     "Username and a password of at least 6 characters are required.",
@@ -179,7 +172,7 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
-    if (!username || !password) {
+    if (!isValidUsername(username) || !isValidPassword(password)) {
         return res
             .status(400)
             .json({ message: "username and password are required" });
@@ -297,7 +290,7 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
         try {
             const messageObject = JSON.parse(message.toString());
             if (messageObject.type === "chat") {
-                if (!messageObject.message || messageObject.message.length > 250) {
+                if (!isValidMessage(messageObject)) {
                     return;
                 }
                 const chatMessage = {
