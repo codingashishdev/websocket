@@ -15,7 +15,6 @@
   "dependencies": {
     "@sentry/node": "^10.19.0",
     "@sentry/profiling-node": "^10.19.0",
-    "@sentry/tracing": "^7.120.4",
     "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",
     "concurrently": "^9.2.1",

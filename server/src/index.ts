@@ -1,3 +1,4 @@
+import "./instrument.js";
 import { WebSocketServer, WebSocket } from "ws";
 import RateLimit from "express-rate-limit";
 import dotenv from "dotenv";
@@ -6,11 +7,9 @@ import bcrypt from "bcrypt";
 import pool from "./db.js";
 import cors from "cors";
 import jwt from "jsonwebtoken"
-import "./instrument.js";
 import Sentry from "@sentry/node"
 import logger from "./logger.js";
 import express from "express";
-
 dotenv.config();
 
 const app = express();
@@ -253,6 +252,13 @@ app.get('/health', (req, res) => {
 
 app.get('/debug-sentry', (req, res) => {
     throw new Error('Sentry test error!')
+})
+
+Sentry.setupExpressErrorHandler(app)
+
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    logger.error('Unhandled error: ', err);
+    res.status(500).json({ message: 'Internal server error' });
 })
 
 wss.on("connection", (ws: ChatWebSocket, req) => {
