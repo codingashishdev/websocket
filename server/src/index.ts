@@ -1,6 +1,3 @@
-import * as Sentry from "@sentry/node";
-import { nodeProfilingIntegration } from "@sentry/profiling-node";
-import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import RateLimit from "express-rate-limit";
 import dotenv from "dotenv";
@@ -9,29 +6,30 @@ import bcrypt from "bcrypt";
 import pool from "./db.js";
 import cors from "cors";
 import jwt from "jsonwebtoken"
+import "./instrument.js";
+import Sentry from "@sentry/node"
 import logger from "./logger.js";
+import express from "express";
+
 dotenv.config();
 
 const app = express();
 
+const limiter = RateLimit({
+    max: 200,
+    windowMs: 60 * 60 * 1000,
+    message: "Too many request from this IP address",
+});
+
 app.use(cors());
 app.use(express.json());
+app.use(limiter);
+
 const port = process.env.PORT || 8080;
 const secret = process.env.JWT_SECRET;
 
 const rateLimit = 20;
 const rateLimitInterval = 10 * 1000
-
-// Sentry.init({
-//     dsn: process.env.SENTRY_DSN;,
-//     integrations: [
-//         new nodeProfilingIntegration(),
-//     ],
-//     // We recommend adjusting this value in production, or using tracesSampler
-//     // for finer control
-//     tracesSampleRate: 1.0, // Capture 100% of transactions for performance monitoring.
-//     profilesSampleRate: 1.0,
-// });
 
 interface ChatWebSocket extends WebSocket {
     username?: string;
@@ -45,14 +43,6 @@ function sanitize(str: string): string {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39");
 }
-
-const limiter = RateLimit({
-    max: 200,
-    windowMs: 60 * 60 * 1000,
-    message: "Too many request from this IP address",
-});
-
-app.use(limiter);
 
 const server = app.listen(port, () => {
     logger.info(`Server is running on the localhost port: ${port} `)
@@ -259,6 +249,10 @@ app.post('/logout', async (req, res) => {
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timeStamp: new Date().toISOString() });
+})
+
+app.get('/debug-sentry', (req, res) => {
+    throw new Error('Sentry test error!')
 })
 
 wss.on("connection", (ws: ChatWebSocket, req) => {
