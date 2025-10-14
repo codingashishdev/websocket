@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 import pool from "./db.js";
 import cors from "cors";
 import jwt from "jsonwebtoken"
-import Sentry from "@sentry/node"
+import * as Sentry from "@sentry/node"
 import logger from "./logger.js";
 import express from "express";
 import { sanitize } from "./utils/sanitize.js";
