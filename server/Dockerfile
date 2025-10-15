@@ -10,7 +10,7 @@ RUN npm ci
 COPY . .
 
 # Build typescript
-RUN npm run dev:watch
+RUN npm build
 
 # Expose the port
 EXPOSE 8080
