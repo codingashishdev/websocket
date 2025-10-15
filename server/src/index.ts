@@ -40,11 +40,14 @@ const server = app.listen(port, () => {
     logger.info(`Server is running on the localhost port: ${port} `)
 });
 
+// Update the allowedOrigins array
 const allowedOrigins = [
     "http://127.0.0.1:5500",
     "http://localhost:8080",
     "http://localhost:5500",
-    "ws://localhost:8080"
+    "ws://localhost:8080",
+    "https://websocket-chat-client.onrender.com",
+    "wss://websocket-chat-server.onrender.com"
 ];
 
 function getConnectedUsers(): string[] {

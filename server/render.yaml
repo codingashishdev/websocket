@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: websocket-chat-server
+    env: docker
+    dockerfilePath: ./server/Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_USER
+        fromDatabase:
+          name: websocket-chat-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: websocket-chat-db
+          property: password
+      - key: DB_HOST
+        fromDatabase:
+          name: websocket-chat-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: websocket-chat-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: websocket-chat-db
+          property: database
+
+  - type: web
+    name: websocket-chat-client
+    env: static
+    buildCommand: ""  # No build needed for this simple static site
+    staticPublishPath: ./client
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+
+databases:
+  - name: websocket-chat-db
+    plan: free
+    ipAllowList: [] # only allow internal connections

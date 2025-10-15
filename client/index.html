@@ -558,6 +558,10 @@
         })
 
         let socket;
+        const isProduction = window.location.hostname !== 'localhost';
+        const wsProtocol = isProduction ? 'wss' : 'ws';
+        const apiProtocol = isProduction ? 'https' : 'http';
+        const serverHost = isProduction ? 'websocket-chat-server.onrender.com' : 'localhost:8080';
         let username = "";
         let token = "";
         let shouldReconnect = true;
@@ -576,7 +580,7 @@
         let maxReconnectionInterval = 30000;
 
         function connect(token, username) {
-            socket = new WebSocket(`ws://localhost:8080?token=${token}`);
+            socket = new WebSocket(`${wsProtocol}://${serverHost}?token=${token}`)
 
             socket.onopen = () => {
                 console.log("Connected to the websocket server");
@@ -653,7 +657,7 @@
 
         async function Logout(token) {
             try {
-                const response = await fetch("http://localhost:8080/logout", {
+                const response = await fetch(`${apiProtocol}://${serverHost}/logout`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -686,7 +690,7 @@
 
         async function Register(username, password) {
             try {
-                const response = await fetch("http://localhost:8080/register", {
+                const response = await fetch(`${apiProtocol}://${serverHost}/register`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -709,7 +713,7 @@
 
         async function Login(username, password) {
             try {
-                const response = await fetch("http://localhost:8080/login", {
+                const response = await fetch(`${apiProtocol}://${serverHost}/login`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
