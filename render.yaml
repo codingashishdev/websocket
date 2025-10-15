@@ -32,16 +32,26 @@ services:
         fromDatabase:
           name: websocket-chat-db
           property: database
+    routes:
+      - type: rewrite
+        source: /socket.io/*
+        destination: /socket.io/$1
 
   - type: web
     name: websocket-chat-client
     env: static
-    buildCommand: ""  # No build needed for this simple static site
-    staticPublishPath: ./client
+    buildCommand: "cd client && npm install && npm run build"  # Added proper build command
+    staticPublishPath: ./client/build  # Updated path to the build output
     headers:
       - path: /*
         name: Cache-Control
         value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    depends_on:
+      - websocket-chat-server
 
 databases:
   - name: websocket-chat-db
