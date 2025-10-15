@@ -36,9 +36,7 @@ services:
   - type: web
     name: websocket-chat-client
     env: static
-    # Option 1: If the client code is in the root directory
-    buildCommand: "npm install && npm run build"
-    staticPublishPath: ./build
+    staticPublishPath: ./client
     headers:
       - path: /*
         name: Cache-Control
