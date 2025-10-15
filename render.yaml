@@ -32,10 +32,6 @@ services:
         fromDatabase:
           name: websocket-chat-db
           property: database
-    routes:
-      - type: rewrite
-        source: /socket.io/*
-        destination: /socket.io/$1
 
   - type: web
     name: websocket-chat-client
