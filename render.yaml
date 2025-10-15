@@ -40,8 +40,8 @@ services:
   - type: web
     name: websocket-chat-client
     env: static
-    buildCommand: "cd client && npm install && npm run build"  # Added proper build command
-    staticPublishPath: ./client/build  # Updated path to the build output
+    buildCommand: "cd client && npm install && npm run build"
+    staticPublishPath: ./client/build
     headers:
       - path: /*
         name: Cache-Control
@@ -50,8 +50,6 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-    depends_on:
-      - websocket-chat-server
 
 databases:
   - name: websocket-chat-db
