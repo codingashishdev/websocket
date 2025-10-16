@@ -22,5 +22,5 @@ if (dsn) {
     });
 }
 else {
-    logger.warn('SENTEY_DSN not configured. Sentry monitoring disabled.')
+    logger.warn('SENTRY_DSN not configured. Sentry monitoring disabled.')
 }
