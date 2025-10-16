@@ -6,8 +6,10 @@
   "scripts": {
     "dev:watch": "tsc -w",
     "start:watch": "nodemon dist/index.js",
-    "dev:hot": "concurrently \"npm run dev:watch\" \"npm run start:watch\""
-  },
+    "dev:hot": "concurrently \"npm run dev:watch\" \"npm run start:watch\"",
+    "build": "tsc",
+    "start": "node dist/index.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

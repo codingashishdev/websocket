@@ -4,13 +4,13 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install --production
 
 # Copy source code
 COPY . .
 
 # Build typescript
-RUN npm build
+RUN npx tsc
 
 # Expose the port
 EXPOSE 8080
