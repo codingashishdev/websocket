@@ -3,6 +3,7 @@ services:
     name: websocket-chat-server
     env: docker
     dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server  # Add this line!
     plan: free
     healthCheckPath: /health
     envVars:

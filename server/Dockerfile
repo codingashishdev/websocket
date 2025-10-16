@@ -6,10 +6,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
 
-# Copy source code
-COPY . .
+# Copy TypeScript config
+COPY tsconfig.json ./
 
-# Build typescript
+# Copy source code
+COPY src ./src
+
+# Build TypeScript
 RUN npx tsc
 
 # Expose the port
