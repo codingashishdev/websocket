@@ -768,7 +768,11 @@
 
         function updateUserList(users) {
             userList.innerHTML = "";
-            users.forEach((user) => {
+
+            // use set to ensure unique usernames
+            const uniqueUsers = [...new Set(users)]
+
+            uniqueUsers.forEach((user) => {
                 if (user !== "Guest") {
                     const li = document.createElement("li");
                     const dot = document.createElement("span");
@@ -784,7 +788,7 @@
                     }
                     userList.appendChild(li);
                 }
-            });
+            })
         }
 
         chatForm.addEventListener("submit", (e) => {

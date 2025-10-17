@@ -58,7 +58,9 @@ function getConnectedUsers(): string[] {
     const users: string[] = [];
     wss.clients.forEach((client: ChatWebSocket) => {
         if (client.readyState === WebSocket.OPEN && client.username)
-            users.push(client.username);
+            if(!users.includes(client.username)){
+                users.push(client.username);
+            }
     });
     return users;
 }
