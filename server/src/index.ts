@@ -50,8 +50,8 @@ const allowedOrigins = [
     "wss://websocket-chat-server.onrender.com",
     "https://websocket-chat-server-ptfw.onrender.com",
     "wss://websocket-chat-server-ptfw.onrender.com",
-    "https://websocket-chat-client-ptfw.onrender.com",  // ✅ Add this - your client's origin
-    "wss://websocket-chat-client-ptfw.onrender.com"     // ✅ Add this too for WSS
+    "https://websocket-chat-client-ptfw.onrender.com",
+    "wss://websocket-chat-client-ptfw.onrender.com"
 ];
 
 function getConnectedUsers(): string[] {
@@ -277,7 +277,7 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
     };
 
     wss.clients.forEach((client) => {
-        if (client.readyState === ws.OPEN) {
+        if (client !== ws && client.readyState === ws.OPEN) {
             client.send(JSON.stringify(announcement));
         }
     });
@@ -297,7 +297,7 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
         try {
             const messageObject = JSON.parse(message.toString());
             if (messageObject.type === "chat") {
-                if (!isValidMessage(messageObject.message)) {  // ✅ Pass the message string
+                if (!isValidMessage(messageObject.message)) { 
                     logger.warn(`Invalid message received from ${ws.username}`)
                     return;
                 }
