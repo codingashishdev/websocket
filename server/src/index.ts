@@ -16,13 +16,28 @@ dotenv.config();
 
 const app = express();
 
+// Configure CORS properly
+const allowedOrigins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:8080",
+    "http://localhost:5500",
+    "https://websocket-chat-client-ptfw.onrender.com",
+    "https://websocket-chat-server-ptfw.onrender.com",
+];
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 const limiter = RateLimit({
     max: 200,
     windowMs: 60 * 60 * 1000,
     message: "Too many request from this IP address",
 });
 
-app.use(cors());
 app.use(express.json());
 app.use(limiter);
 
@@ -40,18 +55,13 @@ const server = app.listen(port, () => {
     logger.info(`Server is running on the localhost port: ${port} `)
 });
 
-// Update the allowedOrigins array
-const allowedOrigins = [
+// Update the allowedOrigins array for WebSocket
+const wsAllowedOrigins = [
     "http://127.0.0.1:5500",
     "http://localhost:8080",
     "http://localhost:5500",
-    "ws://localhost:8080",
-    "https://websocket-chat-client.onrender.com",
-    "wss://websocket-chat-server.onrender.com",
-    "https://websocket-chat-server-ptfw.onrender.com",
-    "wss://websocket-chat-server-ptfw.onrender.com",
     "https://websocket-chat-client-ptfw.onrender.com",
-    "wss://websocket-chat-client-ptfw.onrender.com"
+    "wss://websocket-chat-server-ptfw.onrender.com",
 ];
 
 function getConnectedUsers(): string[] {

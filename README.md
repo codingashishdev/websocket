@@ -9,6 +9,7 @@ Real-time chat with authentication, built using Express, PostgreSQL, WebSockets,
 - **Security**: Rate limiting, input sanitization, origin validation, token-based auth
 - **Monitoring**: Winston logging and Sentry error tracking
 - **Modern UI**: Responsive dark/light theme, connection status, user list
+- **Graceful Shutdown**: Ensures all connections are closed properly before the server exits.
 
 ## Quick Start
 
@@ -106,6 +107,9 @@ websocket/
 { "status": "ok", "timeStamp": "2025-10-14T12:34:56.789Z" }
 ```
 
+### GET /debug-sentry
+Triggers a test error to verify Sentry integration.
+
 ## WebSocket Protocol
 
 **Connect:** `ws://localhost:8080?token=<jwt-token>`
@@ -133,9 +137,15 @@ websocket/
 Edit `allowedOrigins` in `server/src/index.ts`:
 ```ts
 const allowedOrigins = [
-  'http://localhost:5500',
-  'https://your-domain.com',
-]
+    "http://127.0.0.1:5500",
+    "http://localhost:8080",
+    "http://localhost:5500",
+    "ws://localhost:8080",
+    "https://websocket-chat-server-ptfw.onrender.com",
+    "wss://websocket-chat-server-ptfw.onrender.com",
+    "https://websocket-chat-client-ptfw.onrender.com",
+    "wss://websocket-chat-client-ptfw.onrender.com"
+];
 ```
 
 ### Environment Variables
@@ -164,6 +174,8 @@ SENTRY_DSN=your-sentry-dsn
 npm run dev:hot        # Hot reload (TypeScript + Nodemon)
 npm run dev:watch      # Watch TypeScript compilation only
 npm run start:watch    # Watch and restart server only
+npm run build          # Compile TypeScript to JavaScript
+npm run start          # Run the compiled JavaScript server
 ```
 
 ## Security Features
@@ -199,18 +211,9 @@ psql -U postgres -d websocket_chat -c "SELECT 1;"
 - Wait 10 seconds (20 messages per 10 seconds limit)
 - Client reconnects automatically
 
-## Production Checklist
-
-- [ ] Use HTTPS/WSS (nginx reverse proxy)
-- [ ] Use Redis for token storage
-- [ ] Add token refresh mechanism
-- [ ] Configure Sentry DSN
-- [ ] Set strong JWT_SECRET
-- [ ] Enable database backups
-- [ ] Add monitoring/alerting
-- [ ] Implement message persistence
-
 ## Docker Deployment
+
+The project includes a `Dockerfile` for building a production-ready Docker image and a `docker-compose.yml` for local development.
 
 ```yaml
 # docker-compose.yml
@@ -237,6 +240,7 @@ volumes:
   postgres_data:
 ```
 
+To run the application with Docker Compose:
 ```bash
 docker-compose up -d
 ```
