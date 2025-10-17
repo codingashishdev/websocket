@@ -295,7 +295,7 @@ wss.on("connection", (ws: ChatWebSocket, req) => {
         try {
             const messageObject = JSON.parse(message.toString());
             if (messageObject.type === "chat") {
-                if (!isValidMessage(messageObject)) {
+                if (!isValidMessage(messageObject.message)) {  // ✅ Pass the message string
                     logger.warn(`Invalid message received from ${ws.username}`)
                     return;
                 }
