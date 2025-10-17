@@ -486,10 +486,13 @@
     <div id="layout">
         <div class="header">
             <h1>Real Time Chat Application</h1>
-            <div class="status" aria-live="polite">
-                <span id="connection-status"></span>
-                <span id="status-dot" class="dot"></span>
-                <span id="status-text">Connecting…</span>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="status" aria-live="polite">
+                    <span id="connection-status"></span>
+                    <span id="status-dot" class="dot"></span>
+                    <span id="status-text">Connecting…</span>
+                </div>
+                <button id="logout">Logout</button>
             </div>
         </div>
 
@@ -500,8 +503,6 @@
                 <h2>Connected users</h2>
                 <ul id="userList"></ul>
             </div>
-
-            <button id="logout">Logout</button>
 
             <form id="chat-form">
                 <label for="message-box">Type your message</label>
@@ -603,7 +604,7 @@
 
                 if (msg.type === "announcement") {
                     const li = document.createElement("li");
-                    li.classList.add("announcements");
+                    li.classList.add("announcement");
                     li.textContent = msg.text;
                     messageList.appendChild(li);
                     return;
@@ -705,7 +706,7 @@
                     throw new Error(err.message || "Registration Failed")
                 }
 
-                const data = response.json()
+                const data = await response.json()
                 alert(`Registration successfull for ${username}! Please log in`)
             }
             catch (error) {
@@ -730,7 +731,7 @@
                 const data = await response.json()
 
                 token = data.token
-                this.username = username
+                username = username
 
                 shouldReconnect = true;
 
