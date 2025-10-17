@@ -49,7 +49,9 @@ const allowedOrigins = [
     "https://websocket-chat-client.onrender.com",
     "wss://websocket-chat-server.onrender.com",
     "https://websocket-chat-server-ptfw.onrender.com",
-    "wss://websocket-chat-server-ptfw.onrender.com" // Add this
+    "wss://websocket-chat-server-ptfw.onrender.com",
+    "https://websocket-chat-client-ptfw.onrender.com",  // ✅ Add this - your client's origin
+    "wss://websocket-chat-client-ptfw.onrender.com"     // ✅ Add this too for WSS
 ];
 
 function getConnectedUsers(): string[] {
