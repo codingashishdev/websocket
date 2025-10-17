@@ -48,7 +48,8 @@ const allowedOrigins = [
     "ws://localhost:8080",
     "https://websocket-chat-client.onrender.com",
     "wss://websocket-chat-server.onrender.com",
-    "https://websocket-chat-server-ptfw.onrender.com"
+    "https://websocket-chat-server-ptfw.onrender.com",
+    "wss://websocket-chat-server-ptfw.onrender.com" // Add this
 ];
 
 function getConnectedUsers(): string[] {

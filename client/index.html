@@ -561,7 +561,7 @@
         const isProduction = window.location.hostname !== 'localhost';
         const wsProtocol = isProduction ? 'wss' : 'ws';
         const apiProtocol = isProduction ? 'https' : 'http';
-        const serverHost = isProduction ? 'websocket-chat-server-ptfw.onrender.com' : 'localhost:8080';
+        const serverHost = isProduction ? 'websocket-chat-server.onrender.com' : 'localhost:8080'; // Update if needed
         let username = "";
         let token = "";
         let shouldReconnect = true;
@@ -580,7 +580,9 @@
         let maxReconnectionInterval = 30000;
 
         function connect(token, username) {
-            socket = new WebSocket(`${wsProtocol}://${serverHost}?token=${token}`)
+            const wsUrl = `${wsProtocol}://${serverHost}?token=${token}`;
+            console.log('Attempting to connect to:', wsUrl); // Add this
+            socket = new WebSocket(wsUrl)
 
             socket.onopen = () => {
                 console.log("Connected to the websocket server");
